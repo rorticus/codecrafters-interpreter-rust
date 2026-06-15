@@ -13,6 +13,8 @@ pub enum TokenKind {
     Semicolon,
     Equal,
     EqualEqual,
+    Bang,
+    BangEqual,
 }
 
 pub struct Token {
@@ -42,6 +44,8 @@ impl fmt::Display for TokenKind {
             TokenKind::Semicolon => "SEMICOLON",
             TokenKind::Equal => "EQUAL",
             TokenKind::EqualEqual => "EQUAL_EQUAL",
+            TokenKind::Bang => "BANG",
+            TokenKind::BangEqual => "BANG_EQUAL",
         };
 
         write!(f, "{name}")

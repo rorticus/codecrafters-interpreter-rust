@@ -96,6 +96,29 @@ impl Iterator for Lexer {
                     }
                 }
 
+                Some('!') => {
+                    self.advance();
+
+                    match self.peek() {
+                        Some('=') => {
+                            self.advance();
+
+                            return Some(Ok(Token {
+                                kind: tokens::TokenKind::BangEqual,
+                                lexeme: "!=".to_string(),
+                                line: self.line,
+                            }));
+                        }
+                        _ => {
+                            return Some(Ok(Token {
+                                kind: tokens::TokenKind::Bang,
+                                lexeme: "!".to_string(),
+                                line: self.line,
+                            }));
+                        }
+                    }
+                }
+
                 Some('\n') => {
                     self.advance();
                     self.line += 1;
