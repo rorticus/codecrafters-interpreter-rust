@@ -27,15 +27,23 @@ fn main() {
             });
 
             let l = Lexer::new(&file_contents);
+            let mut has_error = false;
 
             for result in l {
                 match result {
                     Ok(token) => println!("{token}"),
-                    Err(e) => println!("{e}"),
+                    Err(e) => {
+                        has_error = true;
+                        eprintln!("{e}")
+                    }
                 }
             }
 
-            println!("EOF  null")
+            println!("EOF  null");
+
+            if has_error {
+                std::process::exit(65);
+            }
         }
         _ => {
             eprintln!("Unknown command: {}", command);

@@ -6,13 +6,15 @@ use tokens::Token;
 use crate::lexer::LexError::UnexpectedCharacter;
 
 pub enum LexError {
-    UnexpectedCharacter(char),
+    UnexpectedCharacter(usize, char),
 }
 
 impl Display for LexError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            UnexpectedCharacter(c) => write!(f, "Unexpected character '{}'", c),
+            UnexpectedCharacter(line, c) => {
+                write!(f, "[line {}] Error: Unexpected character: {}", line, c)
+            }
         }
     }
 }
@@ -79,7 +81,7 @@ impl Iterator for Lexer {
                 }
                 Some(c) => {
                     self.advance();
-                    return Some(Err(LexError::UnexpectedCharacter(c)));
+                    return Some(Err(LexError::UnexpectedCharacter(self.line, c)));
                 }
             }
         }
