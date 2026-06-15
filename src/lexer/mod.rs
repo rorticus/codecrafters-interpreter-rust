@@ -1,6 +1,6 @@
 mod tokens;
 
-use std::{fmt::Display, format};
+use std::fmt::Display;
 use tokens::Token;
 
 use crate::lexer::LexError::UnexpectedCharacter;
@@ -65,6 +65,24 @@ impl Iterator for Lexer {
                     return Some(Ok(Token {
                         kind: tokens::TokenKind::RightParen,
                         lexeme: ")".to_string(),
+                        line: self.line,
+                    }));
+                }
+                Some('{') => {
+                    self.advance();
+
+                    return Some(Ok(Token {
+                        kind: tokens::TokenKind::LeftBrace,
+                        lexeme: "{".to_string(),
+                        line: self.line,
+                    }));
+                }
+                Some('}') => {
+                    self.advance();
+
+                    return Some(Ok(Token {
+                        kind: tokens::TokenKind::RightBrace,
+                        lexeme: "}".to_string(),
                         line: self.line,
                     }));
                 }

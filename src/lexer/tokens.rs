@@ -1,9 +1,10 @@
 use std::fmt;
 
 pub enum TokenKind {
-    Eof,
     LeftParen,
     RightParen,
+    LeftBrace,
+    RightBrace,
 }
 
 pub struct Token {
@@ -23,7 +24,8 @@ impl fmt::Display for TokenKind {
         let name = match self {
             TokenKind::LeftParen => "LEFT_PAREN",
             TokenKind::RightParen => "RIGHT_PAREN",
-            TokenKind::Eof => "EOF",
+            TokenKind::LeftBrace => "LEFT_BRACE",
+            TokenKind::RightBrace => "RIGHT_BRACE",
         };
 
         write!(f, "{name}")
