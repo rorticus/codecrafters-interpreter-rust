@@ -5,6 +5,12 @@ pub enum TokenKind {
     RightParen,
     LeftBrace,
     RightBrace,
+    Comma,
+    Dot,
+    Star,
+    Plus,
+    Minus,
+    Semicolon,
 }
 
 pub struct Token {
@@ -26,6 +32,12 @@ impl fmt::Display for TokenKind {
             TokenKind::RightParen => "RIGHT_PAREN",
             TokenKind::LeftBrace => "LEFT_BRACE",
             TokenKind::RightBrace => "RIGHT_BRACE",
+            TokenKind::Comma => "COMMA",
+            TokenKind::Dot => "DOT",
+            TokenKind::Star => "STAR",
+            TokenKind::Plus => "PLUS",
+            TokenKind::Minus => "MINUS",
+            TokenKind::Semicolon => "SEMICOLON",
         };
 
         write!(f, "{name}")

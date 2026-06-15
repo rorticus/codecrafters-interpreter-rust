@@ -50,47 +50,37 @@ impl Iterator for Lexer {
         loop {
             match self.peek() {
                 None => return None,
-                Some('(') => {
-                    self.advance();
+                Some('.') | Some('*') | Some(',') | Some('{') | Some('}') | Some('(')
+                | Some(')') | Some('+') | Some('-') | Some(';') => {
+                    let c = self.advance().unwrap_or_default();
 
                     return Some(Ok(Token {
-                        kind: tokens::TokenKind::LeftParen,
-                        lexeme: "(".to_string(),
+                        kind: match c {
+                            '.' => tokens::TokenKind::Dot,
+                            '*' => tokens::TokenKind::Star,
+                            ',' => tokens::TokenKind::Comma,
+                            '{' => tokens::TokenKind::LeftBrace,
+                            '}' => tokens::TokenKind::RightBrace,
+                            '(' => tokens::TokenKind::LeftParen,
+                            ')' => tokens::TokenKind::RightParen,
+                            '+' => tokens::TokenKind::Plus,
+                            '-' => tokens::TokenKind::Minus,
+                            ';' => tokens::TokenKind::Semicolon,
+                            _ => panic!("shouldn't be here"),
+                        },
+                        lexeme: c.to_string(),
                         line: self.line,
                     }));
                 }
-                Some(')') => {
-                    self.advance();
 
-                    return Some(Ok(Token {
-                        kind: tokens::TokenKind::RightParen,
-                        lexeme: ")".to_string(),
-                        line: self.line,
-                    }));
-                }
-                Some('{') => {
-                    self.advance();
-
-                    return Some(Ok(Token {
-                        kind: tokens::TokenKind::LeftBrace,
-                        lexeme: "{".to_string(),
-                        line: self.line,
-                    }));
-                }
-                Some('}') => {
-                    self.advance();
-
-                    return Some(Ok(Token {
-                        kind: tokens::TokenKind::RightBrace,
-                        lexeme: "}".to_string(),
-                        line: self.line,
-                    }));
-                }
                 Some('\n') => {
                     self.advance();
                     self.line += 1;
                 }
-                Some(c) => return Some(Err(LexError::UnexpectedCharacter(c))),
+                Some(c) => {
+                    self.advance();
+                    return Some(Err(LexError::UnexpectedCharacter(c)));
+                }
             }
         }
     }
