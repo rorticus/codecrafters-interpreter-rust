@@ -2,6 +2,10 @@
 use std::env;
 use std::fs;
 
+use crate::lexer::Lexer;
+
+mod lexer;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() < 3 {
@@ -22,11 +26,16 @@ fn main() {
                 String::new()
             });
 
-            if !file_contents.is_empty() {
-                panic!("Scanner not implemented");
-            } else {
-                println!("EOF  null"); // Placeholder, replace this line when implementing the scanner
+            let l = Lexer::new(&file_contents);
+
+            for result in l {
+                match result {
+                    Ok(token) => println!("{token}"),
+                    Err(e) => println!("{e}"),
+                }
             }
+
+            println!("EOF  null")
         }
         _ => {
             eprintln!("Unknown command: {}", command);
