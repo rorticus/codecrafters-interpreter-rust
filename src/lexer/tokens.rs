@@ -15,6 +15,10 @@ pub enum TokenKind {
     EqualEqual,
     Bang,
     BangEqual,
+    Less,
+    LessEqual,
+    Greater,
+    GreaterEqual,
 }
 
 pub struct Token {
@@ -46,6 +50,10 @@ impl fmt::Display for TokenKind {
             TokenKind::EqualEqual => "EQUAL_EQUAL",
             TokenKind::Bang => "BANG",
             TokenKind::BangEqual => "BANG_EQUAL",
+            TokenKind::Less => "LESS",
+            TokenKind::LessEqual => "LESS_EQUAL",
+            TokenKind::Greater => "GREATER",
+            TokenKind::GreaterEqual => "GREATER_EQUAL",
         };
 
         write!(f, "{name}")
