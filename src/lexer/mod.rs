@@ -52,6 +52,28 @@ impl Lexer {
     fn slice(&self, start: usize, end: usize) -> String {
         return self.chars[start..end].iter().collect();
     }
+
+    fn keyword(&self, ident: &str) -> Option<tokens::TokenKind> {
+        match ident {
+            "and" => Some(tokens::TokenKind::And),
+            "class" => Some(tokens::TokenKind::Class),
+            "else" => Some(tokens::TokenKind::Else),
+            "false" => Some(tokens::TokenKind::False),
+            "for" => Some(tokens::TokenKind::For),
+            "fun" => Some(tokens::TokenKind::Fun),
+            "if" => Some(tokens::TokenKind::If),
+            "nil" => Some(tokens::TokenKind::Nil),
+            "or" => Some(tokens::TokenKind::Or),
+            "print" => Some(tokens::TokenKind::Print),
+            "return" => Some(tokens::TokenKind::Return),
+            "super" => Some(tokens::TokenKind::Super),
+            "this" => Some(tokens::TokenKind::This),
+            "true" => Some(tokens::TokenKind::True),
+            "var" => Some(tokens::TokenKind::Var),
+            "while" => Some(tokens::TokenKind::While),
+            _ => None,
+        }
+    }
 }
 
 impl Iterator for Lexer {
@@ -266,9 +288,13 @@ impl Iterator for Lexer {
                             _ => {
                                 let end = self.pos;
 
+                                let lexeme = self.slice(start, end);
+
                                 return Some(Ok(Token {
-                                    kind: tokens::TokenKind::Identifier(self.slice(start, end)),
-                                    lexeme: self.slice(start, end),
+                                    kind: self.keyword(&lexeme).unwrap_or(
+                                        tokens::TokenKind::Identifier(self.slice(start, end)),
+                                    ),
+                                    lexeme,
                                     line: self.line,
                                 }));
                             }
