@@ -3,10 +3,11 @@ mod tokens;
 use std::fmt::Display;
 use tokens::Token;
 
-use crate::lexer::LexError::UnexpectedCharacter;
+use crate::lexer::LexError::{UnexpectedCharacter, UnterminatedString};
 
 pub enum LexError {
     UnexpectedCharacter(usize, char),
+    UnterminatedString(usize),
 }
 
 impl Display for LexError {
@@ -14,6 +15,9 @@ impl Display for LexError {
         match self {
             UnexpectedCharacter(line, c) => {
                 write!(f, "[line {}] Error: Unexpected character: {}", line, c)
+            }
+            UnterminatedString(line) => {
+                write!(f, "[line {}] Error: Unterminated string.", line)
             }
         }
     }
@@ -43,6 +47,10 @@ impl Lexer {
         self.pos += 1;
 
         c
+    }
+
+    fn slice(&self, start: usize, end: usize) -> String {
+        return self.chars[start..end].iter().collect();
     }
 }
 
@@ -192,6 +200,31 @@ impl Iterator for Lexer {
                                 lexeme: "/".to_string(),
                                 line: self.line,
                             }));
+                        }
+                    }
+                }
+
+                Some('"') => {
+                    let start = self.pos;
+
+                    self.advance();
+
+                    loop {
+                        match self.peek() {
+                            Some('"') => {
+                                self.advance();
+                                let end = self.pos;
+
+                                return Some(Ok(Token {
+                                    kind: tokens::TokenKind::String(self.slice(start + 1, end - 1)),
+                                    lexeme: self.slice(start, end),
+                                    line: self.line,
+                                }));
+                            }
+                            Some(_) => {
+                                self.advance();
+                            }
+                            None => return Some(Err(LexError::UnterminatedString(self.line))),
                         }
                     }
                 }
