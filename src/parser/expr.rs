@@ -28,7 +28,7 @@ impl Expr {
                 LiteralValue::String(v) => v.clone(),
             },
             Expr::Grouping(e) => {
-                format!("({})", e.pretty_print())
+                format!("(group {})", e.pretty_print())
             }
         }
     }
