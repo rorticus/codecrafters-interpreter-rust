@@ -9,6 +9,7 @@ pub enum LiteralValue {
 
 pub enum Expr {
     Literal(LiteralValue),
+    Grouping(Box<Expr>),
 }
 
 impl Expr {
@@ -26,6 +27,9 @@ impl Expr {
                 LiteralValue::Number(v) => format_number(*v),
                 LiteralValue::String(v) => v.clone(),
             },
+            Expr::Grouping(e) => {
+                format!("({})", e.pretty_print())
+            }
         }
     }
 }

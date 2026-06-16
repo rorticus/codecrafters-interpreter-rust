@@ -8,12 +8,14 @@ use std::fmt::Display;
 
 pub enum ParseError {
     UnexpectedToken,
+    ExpectedToken(TokenKind),
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ParseError::UnexpectedToken => write!(f, "Unexpected token"),
+            ParseError::ExpectedToken(t) => write!(f, "Expected {t}"),
         }
     }
 }
@@ -46,6 +48,16 @@ impl Parser {
         self.primary()
     }
 
+    fn expect(&mut self, kind: TokenKind) -> Result<(), ParseError> {
+        match self.peek().map(|t| &t.kind) {
+            Some(k) if k == &kind => {
+                self.advance();
+                Ok(())
+            }
+            _ => Err(ParseError::ExpectedToken(kind)),
+        }
+    }
+
     fn primary(&mut self) -> Result<Expr, ParseError> {
         match self.advance().map(|t| &t.kind) {
             Some(TokenKind::True) => Ok(Expr::Literal(expr::LiteralValue::Boolean(true))),
@@ -53,6 +65,11 @@ impl Parser {
             Some(TokenKind::Nil) => Ok(Expr::Literal(expr::LiteralValue::Nil)),
             Some(TokenKind::Number(v)) => Ok(Expr::Literal(expr::LiteralValue::Number(*v))),
             Some(TokenKind::String(v)) => Ok(Expr::Literal(expr::LiteralValue::String(v.clone()))),
+            Some(TokenKind::LeftParen) => {
+                let inner = self.expression()?; // recurse all the way back up
+                self.expect(TokenKind::RightParen)?; // consume the closing ')'
+                Ok(Expr::Grouping(Box::new(inner)))
+            }
             _ => Err(ParseError::UnexpectedToken),
         }
     }
