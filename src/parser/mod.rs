@@ -52,6 +52,7 @@ impl Parser {
             Some(TokenKind::False) => Ok(Expr::Literal(expr::LiteralValue::Boolean(false))),
             Some(TokenKind::Nil) => Ok(Expr::Literal(expr::LiteralValue::Nil)),
             Some(TokenKind::Number(v)) => Ok(Expr::Literal(expr::LiteralValue::Number(*v))),
+            Some(TokenKind::String(v)) => Ok(Expr::Literal(expr::LiteralValue::String(v.clone()))),
             _ => Err(ParseError::UnexpectedToken),
         }
     }

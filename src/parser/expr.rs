@@ -4,6 +4,7 @@ pub enum LiteralValue {
     Nil,
     Boolean(bool),
     Number(f64),
+    String(String),
 }
 
 pub enum Expr {
@@ -23,6 +24,7 @@ impl Expr {
                     }
                 }
                 LiteralValue::Number(v) => format_number(*v),
+                LiteralValue::String(v) => v.clone(),
             },
         }
     }
