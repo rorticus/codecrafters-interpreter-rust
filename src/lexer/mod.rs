@@ -196,6 +196,10 @@ impl Iterator for Lexer {
                     }
                 }
 
+                Some('\t') | Some(' ') => {
+                    self.advance();
+                }
+
                 Some('\n') => {
                     self.advance();
                     self.line += 1;
