@@ -22,6 +22,7 @@ pub enum TokenKind {
     Slash,
     String(String),
     Number(f64),
+    Identifier(String),
 }
 
 pub struct Token {
@@ -72,6 +73,7 @@ impl fmt::Display for TokenKind {
             TokenKind::Slash => "SLASH",
             TokenKind::String(_) => "STRING",
             TokenKind::Number(_) => "NUMBER",
+            TokenKind::Identifier(_) => "IDENTIFIER",
         };
 
         write!(f, "{name}")

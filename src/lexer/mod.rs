@@ -254,6 +254,28 @@ impl Iterator for Lexer {
                     }
                 }
 
+                Some(c) if c.is_alphabetic() || c == '_' => {
+                    let start = self.pos;
+                    self.advance();
+
+                    loop {
+                        match self.peek() {
+                            Some(c) if c.is_alphanumeric() || c == '_' => {
+                                self.advance();
+                            }
+                            _ => {
+                                let end = self.pos;
+
+                                return Some(Ok(Token {
+                                    kind: tokens::TokenKind::Identifier(self.slice(start, end)),
+                                    lexeme: self.slice(start, end),
+                                    line: self.line,
+                                }));
+                            }
+                        }
+                    }
+                }
+
                 Some('\t') | Some(' ') => {
                     self.advance();
                 }
