@@ -19,6 +19,7 @@ pub enum TokenKind {
     LessEqual,
     Greater,
     GreaterEqual,
+    Slash,
 }
 
 pub struct Token {
@@ -54,6 +55,7 @@ impl fmt::Display for TokenKind {
             TokenKind::LessEqual => "LESS_EQUAL",
             TokenKind::Greater => "GREATER",
             TokenKind::GreaterEqual => "GREATER_EQUAL",
+            TokenKind::Slash => "SLASH",
         };
 
         write!(f, "{name}")

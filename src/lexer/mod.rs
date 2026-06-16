@@ -165,6 +165,37 @@ impl Iterator for Lexer {
                     }
                 }
 
+                Some('/') => {
+                    self.advance();
+
+                    match self.peek() {
+                        Some('/') => {
+                            self.advance();
+
+                            loop {
+                                match self.peek() {
+                                    Some('\n') => {
+                                        break;
+                                    }
+                                    Some(_) => {
+                                        self.advance();
+                                    }
+                                    None => {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        _ => {
+                            return Some(Ok(Token {
+                                kind: tokens::TokenKind::Slash,
+                                lexeme: "/".to_string(),
+                                line: self.line,
+                            }));
+                        }
+                    }
+                }
+
                 Some('\n') => {
                     self.advance();
                     self.line += 1;
