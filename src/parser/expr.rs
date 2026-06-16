@@ -1,6 +1,9 @@
+use crate::lexer::tokens::format_number;
+
 pub enum LiteralValue {
     Nil,
     Boolean(bool),
+    Number(f64),
 }
 
 pub enum Expr {
@@ -19,6 +22,7 @@ impl Expr {
                         "false".to_string()
                     }
                 }
+                LiteralValue::Number(v) => format_number(*v),
             },
         }
     }

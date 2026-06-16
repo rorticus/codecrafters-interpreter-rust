@@ -47,7 +47,7 @@ pub struct Token {
     pub line: usize,
 }
 
-fn format_number(n: f64) -> String {
+pub fn format_number(n: f64) -> String {
     if n.fract() == 0.0 {
         format!("{:.1}", n) // 42.0
     } else {

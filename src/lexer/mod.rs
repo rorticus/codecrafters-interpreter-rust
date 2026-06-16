@@ -1,4 +1,4 @@
-mod tokens;
+pub mod tokens;
 
 use std::fmt::Display;
 pub use tokens::Token;
