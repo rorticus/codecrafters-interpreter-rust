@@ -21,6 +21,7 @@ pub enum TokenKind {
     GreaterEqual,
     Slash,
     String(String),
+    Number(f64),
 }
 
 pub struct Token {
@@ -29,11 +30,20 @@ pub struct Token {
     pub line: usize,
 }
 
+fn format_number(n: f64) -> String {
+    if n.fract() == 0.0 {
+        format!("{:.1}", n) // 42.0
+    } else {
+        format!("{}", n) // 3.14
+    }
+}
+
 impl Token {
-    pub fn literal_str(&self) -> &str {
+    pub fn literal_str(&self) -> String {
         match &self.kind {
-            TokenKind::String(v) => v,
-            _ => "null",
+            TokenKind::String(v) => v.clone(),
+            TokenKind::Number(v) => format_number(*v),
+            _ => "null".to_string(),
         }
     }
 }
@@ -61,6 +71,7 @@ impl fmt::Display for TokenKind {
             TokenKind::GreaterEqual => "GREATER_EQUAL",
             TokenKind::Slash => "SLASH",
             TokenKind::String(_) => "STRING",
+            TokenKind::Number(_) => "NUMBER",
         };
 
         write!(f, "{name}")

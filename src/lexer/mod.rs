@@ -229,6 +229,31 @@ impl Iterator for Lexer {
                     }
                 }
 
+                Some(c) if c.is_ascii_digit() => {
+                    let start = self.pos;
+                    self.advance();
+
+                    loop {
+                        match self.peek() {
+                            Some(c) if c.is_ascii_digit() || c == '.' => {
+                                self.advance();
+                            }
+                            _ => {
+                                let end = self.pos;
+
+                                let number_str = self.slice(start, end);
+                                let as_float: f64 = number_str.parse().unwrap();
+
+                                return Some(Ok(Token {
+                                    kind: tokens::TokenKind::Number(as_float),
+                                    lexeme: number_str,
+                                    line: self.line,
+                                }));
+                            }
+                        }
+                    }
+                }
+
                 Some('\t') | Some(' ') => {
                     self.advance();
                 }
