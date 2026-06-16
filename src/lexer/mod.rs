@@ -1,7 +1,8 @@
 mod tokens;
 
 use std::fmt::Display;
-use tokens::Token;
+pub use tokens::Token;
+pub use tokens::TokenKind;
 
 use crate::lexer::LexError::{UnexpectedCharacter, UnterminatedString};
 
