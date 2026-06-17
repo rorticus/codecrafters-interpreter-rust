@@ -55,7 +55,49 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.unary()
+        self.addition()
+    }
+
+    fn addition(&mut self) -> Result<Expr, ParseError> {
+        let mut left = self.multiplication()?;
+
+        while matches!(
+            self.peek().map(|t| &t.kind),
+            Some(TokenKind::Plus) | Some(TokenKind::Minus)
+        ) {
+            let operator = self.advance().unwrap().clone();
+
+            let right = self.multiplication()?;
+
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            }
+        }
+
+        Ok(left)
+    }
+
+    fn multiplication(&mut self) -> Result<Expr, ParseError> {
+        let mut left = self.unary()?;
+
+        while matches!(
+            self.peek().map(|t| &t.kind),
+            Some(TokenKind::Star) | Some(TokenKind::Slash)
+        ) {
+            let operator = self.advance().unwrap().clone();
+
+            let right = self.unary()?;
+
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
     }
 
     fn unary(&mut self) -> Result<Expr, ParseError> {
