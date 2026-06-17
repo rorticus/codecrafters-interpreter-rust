@@ -1,3 +1,4 @@
+use crate::lexer::Token;
 use crate::lexer::tokens::format_number;
 
 pub enum LiteralValue {
@@ -10,6 +11,7 @@ pub enum LiteralValue {
 pub enum Expr {
     Literal(LiteralValue),
     Grouping(Box<Expr>),
+    Unary { operator: Token, right: Box<Expr> },
 }
 
 impl Expr {
@@ -29,6 +31,9 @@ impl Expr {
             },
             Expr::Grouping(e) => {
                 format!("(group {})", e.pretty_print())
+            }
+            Expr::Unary { operator, right } => {
+                format!("({} {})", operator.lexeme, right.pretty_print())
             }
         }
     }

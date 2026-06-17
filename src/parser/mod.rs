@@ -40,14 +40,6 @@ impl Parser {
         t
     }
 
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
-        self.expression()
-    }
-
-    fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.primary()
-    }
-
     fn expect(&mut self, kind: TokenKind) -> Result<(), ParseError> {
         match self.peek().map(|t| &t.kind) {
             Some(k) if k == &kind => {
@@ -55,6 +47,30 @@ impl Parser {
                 Ok(())
             }
             _ => Err(ParseError::ExpectedToken(kind)),
+        }
+    }
+
+    pub fn parse(&mut self) -> Result<Expr, ParseError> {
+        self.expression()
+    }
+
+    fn expression(&mut self) -> Result<Expr, ParseError> {
+        self.unary()
+    }
+
+    fn unary(&mut self) -> Result<Expr, ParseError> {
+        if matches!(
+            self.peek().map(|t| &t.kind),
+            Some(TokenKind::Bang) | Some(TokenKind::Minus)
+        ) {
+            let operator = self.advance().unwrap().clone();
+            let right = self.unary()?;
+            Ok(Expr::Unary {
+                operator,
+                right: Box::new(right),
+            })
+        } else {
+            self.primary()
         }
     }
 

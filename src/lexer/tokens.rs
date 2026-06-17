@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub enum TokenKind {
     LeftParen,
     RightParen,
@@ -42,6 +42,7 @@ pub enum TokenKind {
     While,
 }
 
+#[derive(Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: String,
