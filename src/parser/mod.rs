@@ -9,6 +9,8 @@ use std::fmt::Display;
 pub enum ParseError {
     UnexpectedToken,
     ExpectedToken(TokenKind),
+    ExpectedExpr(Token),
+    UnexpectedEndOfInput,
 }
 
 impl Display for ParseError {
@@ -16,6 +18,12 @@ impl Display for ParseError {
         match self {
             ParseError::UnexpectedToken => write!(f, "Unexpected token"),
             ParseError::ExpectedToken(t) => write!(f, "Expected {t}"),
+            ParseError::ExpectedExpr(t) => write!(
+                f,
+                "[Line {}] Error at '{}': Expect expression.",
+                t.line, t.lexeme
+            ),
+            ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
         }
     }
 }
@@ -162,18 +170,25 @@ impl Parser {
     }
 
     fn primary(&mut self) -> Result<Expr, ParseError> {
-        match self.advance().map(|t| &t.kind) {
-            Some(TokenKind::True) => Ok(Expr::Literal(expr::LiteralValue::Boolean(true))),
-            Some(TokenKind::False) => Ok(Expr::Literal(expr::LiteralValue::Boolean(false))),
-            Some(TokenKind::Nil) => Ok(Expr::Literal(expr::LiteralValue::Nil)),
-            Some(TokenKind::Number(v)) => Ok(Expr::Literal(expr::LiteralValue::Number(*v))),
-            Some(TokenKind::String(v)) => Ok(Expr::Literal(expr::LiteralValue::String(v.clone()))),
-            Some(TokenKind::LeftParen) => {
-                let inner = self.expression()?; // recurse all the way back up
-                self.expect(TokenKind::RightParen)?; // consume the closing ')'
-                Ok(Expr::Grouping(Box::new(inner)))
+        match self.advance() {
+            Some(t) => {
+                match &t.kind {
+                    TokenKind::True => Ok(Expr::Literal(expr::LiteralValue::Boolean(true))),
+                    TokenKind::False => Ok(Expr::Literal(expr::LiteralValue::Boolean(false))),
+                    TokenKind::Nil => Ok(Expr::Literal(expr::LiteralValue::Nil)),
+                    TokenKind::Number(v) => Ok(Expr::Literal(expr::LiteralValue::Number(*v))),
+                    TokenKind::String(v) => {
+                        Ok(Expr::Literal(expr::LiteralValue::String(v.clone())))
+                    }
+                    TokenKind::LeftParen => {
+                        let inner = self.expression()?; // recurse all the way back up
+                        self.expect(TokenKind::RightParen)?; // consume the closing ')'
+                        Ok(Expr::Grouping(Box::new(inner)))
+                    }
+                    _ => Err(ParseError::ExpectedExpr(t.clone())),
+                }
             }
-            _ => Err(ParseError::UnexpectedToken),
+            None => Err(ParseError::UnexpectedEndOfInput),
         }
     }
 }

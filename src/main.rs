@@ -80,7 +80,10 @@ fn main() {
                 Ok(result) => {
                     println!("{}", result.pretty_print());
                 }
-                Err(e) => eprintln!("Parse Error: {e}"),
+                Err(e) => {
+                    eprintln!("Parse Error: {e}");
+                    std::process::exit(65);
+                }
             }
         }
         _ => {
