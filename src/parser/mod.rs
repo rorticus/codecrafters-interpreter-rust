@@ -55,7 +55,52 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.addition()
+        self.equality()
+    }
+
+    fn equality(&mut self) -> Result<Expr, ParseError> {
+        let mut left = self.comparison()?;
+
+        while matches!(
+            self.peek().map(|t| &t.kind),
+            Some(TokenKind::EqualEqual) | Some(TokenKind::BangEqual)
+        ) {
+            let operator = self.advance().unwrap().clone();
+
+            let right = self.comparison()?;
+
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            }
+        }
+
+        Ok(left)
+    }
+
+    fn comparison(&mut self) -> Result<Expr, ParseError> {
+        let mut left = self.addition()?;
+
+        while matches!(
+            self.peek().map(|t| &t.kind),
+            Some(TokenKind::Less)
+                | Some(TokenKind::LessEqual)
+                | Some(TokenKind::Greater)
+                | Some(TokenKind::GreaterEqual)
+        ) {
+            let operator = self.advance().unwrap().clone();
+
+            let right = self.addition()?;
+
+            left = Expr::Binary {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            }
+        }
+
+        Ok(left)
     }
 
     fn addition(&mut self) -> Result<Expr, ParseError> {
