@@ -7,7 +7,6 @@ use crate::{
 use std::fmt::Display;
 
 pub enum ParseError {
-    UnexpectedToken,
     ExpectedToken(TokenKind),
     ExpectedExpr(Token),
     UnexpectedEndOfInput,
@@ -16,7 +15,6 @@ pub enum ParseError {
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ParseError::UnexpectedToken => write!(f, "Unexpected token"),
             ParseError::ExpectedToken(t) => write!(f, "Expected {t}"),
             ParseError::ExpectedExpr(t) => write!(
                 f,
