@@ -118,15 +118,18 @@ fn main() {
             let mut parser = Parser::new(tokens);
 
             match parser.parse() {
-                Ok(result) => match Interpreter::evaluate(&result) {
-                    Ok(value) => {
-                        println!("{}", value);
+                Ok(result) => {
+                    let interpretter = Interpreter::new();
+                    match interpretter.evaluate(&result) {
+                        Ok(value) => {
+                            println!("{}", value);
+                        }
+                        Err(e) => {
+                            eprintln!("Parse Error: {e}");
+                            std::process::exit(65);
+                        }
                     }
-                    Err(e) => {
-                        eprintln!("Parse Error: {e}");
-                        std::process::exit(65);
-                    }
-                },
+                }
                 Err(e) => {
                     eprintln!("Parse Error: {e}");
                     std::process::exit(65);
