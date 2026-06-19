@@ -75,6 +75,30 @@ impl Interpreter {
                     "Operands must be two numbers or two strings.".to_string(),
                 )),
             },
+            TokenKind::Less => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l < r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be two numbers or two strings.".to_string(),
+                )),
+            },
+            TokenKind::LessEqual => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l <= r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be two numbers or two strings.".to_string(),
+                )),
+            },
+            TokenKind::Greater => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l > r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be two numbers or two strings.".to_string(),
+                )),
+            },
+            TokenKind::GreaterEqual => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l >= r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be two numbers or two strings.".to_string(),
+                )),
+            },
             TokenKind::Minus => Ok(Value::Number(left.as_number() - right.as_number())),
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled binary operation {}",
