@@ -2,9 +2,11 @@
 use std::env;
 use std::fs;
 
+use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
 
+mod interpreter;
 mod lexer;
 mod parser;
 
@@ -80,6 +82,51 @@ fn main() {
                 Ok(result) => {
                     println!("{}", result.pretty_print());
                 }
+                Err(e) => {
+                    eprintln!("Parse Error: {e}");
+                    std::process::exit(65);
+                }
+            }
+        }
+        "evaluate" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                eprintln!("Failed to read file {}", filename);
+                String::new()
+            });
+
+            let l = Lexer::new(&file_contents);
+            let mut has_error = false;
+
+            let mut tokens = Vec::new();
+
+            for result in l {
+                match result {
+                    Ok(token) => {
+                        tokens.push(token);
+                    }
+                    Err(e) => {
+                        has_error = true;
+                        eprintln!("{e}")
+                    }
+                }
+            }
+
+            if has_error {
+                std::process::exit(65);
+            }
+
+            let mut parser = Parser::new(tokens);
+
+            match parser.parse() {
+                Ok(result) => match Interpreter::evaluate(&result) {
+                    Ok(value) => {
+                        println!("{}", value);
+                    }
+                    Err(e) => {
+                        eprintln!("Parse Error: {e}");
+                        std::process::exit(65);
+                    }
+                },
                 Err(e) => {
                     eprintln!("Parse Error: {e}");
                     std::process::exit(65);

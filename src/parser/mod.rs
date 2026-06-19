@@ -1,4 +1,4 @@
-mod expr;
+pub mod expr;
 
 use crate::{
     lexer::{Token, TokenKind},
