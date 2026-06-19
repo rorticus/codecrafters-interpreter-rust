@@ -72,8 +72,20 @@ impl Interpreter {
         let right = self.evaluate(right)?;
 
         match operator.kind {
-            TokenKind::Star => Ok(Value::Number(left.as_number() * right.as_number())),
-            TokenKind::Slash => Ok(Value::Number(left.as_number() / right.as_number())),
+            TokenKind::Star => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l * r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be numbers.".to_string(),
+                    operator.line,
+                )),
+            },
+            TokenKind::Slash => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l / r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be numbers.".to_string(),
+                    operator.line,
+                )),
+            },
             TokenKind::Plus => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l + r)),
                 (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
@@ -85,28 +97,28 @@ impl Interpreter {
             TokenKind::Less => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l < r)),
                 _ => Err(InterpreterError::RuntimeError(
-                    "Operands must be two numbers or two strings.".to_string(),
+                    "Operands must be numbers.".to_string(),
                     operator.line,
                 )),
             },
             TokenKind::LessEqual => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l <= r)),
                 _ => Err(InterpreterError::RuntimeError(
-                    "Operands must be two numbers or two strings.".to_string(),
+                    "Operands must be numbers.".to_string(),
                     operator.line,
                 )),
             },
             TokenKind::Greater => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l > r)),
                 _ => Err(InterpreterError::RuntimeError(
-                    "Operands must be two numbers or two strings.".to_string(),
+                    "Operands must be numbers.".to_string(),
                     operator.line,
                 )),
             },
             TokenKind::GreaterEqual => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l >= r)),
                 _ => Err(InterpreterError::RuntimeError(
-                    "Operands must be two numbers or two strings.".to_string(),
+                    "Operands must be numbers.".to_string(),
                     operator.line,
                 )),
             },
