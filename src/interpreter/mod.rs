@@ -9,6 +9,7 @@ use crate::{
 pub enum InterpreterError {
     UnhandledException,
     Internal(String),
+    RuntimeError(String),
 }
 
 impl std::fmt::Display for InterpreterError {
@@ -16,6 +17,7 @@ impl std::fmt::Display for InterpreterError {
         match self {
             InterpreterError::UnhandledException => write!(f, "Unhandled Exception"),
             InterpreterError::Internal(msg) => write!(f, "Internal error: {}", msg),
+            InterpreterError::RuntimeError(msg) => write!(f, "Runtime error: {}", msg),
         }
     }
 }
@@ -66,7 +68,13 @@ impl Interpreter {
         match operator.kind {
             TokenKind::Star => Ok(Value::Number(left.as_number() * right.as_number())),
             TokenKind::Slash => Ok(Value::Number(left.as_number() / right.as_number())),
-            TokenKind::Plus => Ok(Value::Number(left.as_number() + right.as_number())),
+            TokenKind::Plus => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l + r)),
+                (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be two numbers or two strings.".to_string(),
+                )),
+            },
             TokenKind::Minus => Ok(Value::Number(left.as_number() - right.as_number())),
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled binary operation {}",
