@@ -99,6 +99,18 @@ impl Interpreter {
                     "Operands must be two numbers or two strings.".to_string(),
                 )),
             },
+            TokenKind::EqualEqual => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l == r)),
+                (Value::String(l), Value::String(r)) => Ok(Value::Boolean(l == r)),
+                (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l == r)),
+                _ => Ok(Value::Boolean(false)),
+            },
+            TokenKind::BangEqual => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l != r)),
+                (Value::String(l), Value::String(r)) => Ok(Value::Boolean(l != r)),
+                (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l != r)),
+                _ => Ok(Value::Boolean(false)),
+            },
             TokenKind::Minus => Ok(Value::Number(left.as_number() - right.as_number())),
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled binary operation {}",
