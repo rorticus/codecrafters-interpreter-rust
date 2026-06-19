@@ -125,8 +125,8 @@ fn main() {
                             println!("{}", value);
                         }
                         Err(e) => {
-                            eprintln!("Parse Error: {e}");
-                            std::process::exit(65);
+                            eprintln!("{e}");
+                            std::process::exit(70);
                         }
                     }
                 }
