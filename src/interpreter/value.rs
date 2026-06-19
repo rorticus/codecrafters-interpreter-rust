@@ -1,4 +1,4 @@
-use crate::{interpreter::value::Value::Boolean, parser::expr::LiteralValue};
+use crate::parser::expr::LiteralValue;
 
 pub enum Value {
     Nil,

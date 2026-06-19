@@ -1,7 +1,5 @@
 pub mod value;
 
-use std::fmt::write;
-
 use crate::{interpreter::value::Value, parser::expr::Expr};
 
 pub enum InterpreterError {
@@ -22,6 +20,7 @@ impl Interpreter {
     pub fn evaluate(expr: &Expr) -> Result<Value, InterpreterError> {
         match expr {
             Expr::Literal(literal) => Ok(Value::from_literal(literal)),
+            Expr::Grouping(expr) => Interpreter::evaluate(expr),
             _ => Err(InterpreterError::UnhandledException),
         }
     }
