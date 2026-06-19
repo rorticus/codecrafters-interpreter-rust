@@ -9,7 +9,7 @@ use crate::{
 pub enum InterpreterError {
     UnhandledException,
     Internal(String),
-    RuntimeError(String),
+    RuntimeError(String, usize),
 }
 
 impl std::fmt::Display for InterpreterError {
@@ -17,7 +17,7 @@ impl std::fmt::Display for InterpreterError {
         match self {
             InterpreterError::UnhandledException => write!(f, "Unhandled Exception"),
             InterpreterError::Internal(msg) => write!(f, "Internal error: {}", msg),
-            InterpreterError::RuntimeError(msg) => write!(f, "Runtime error: {}", msg),
+            InterpreterError::RuntimeError(msg, line) => write!(f, "{}\n[Line {}]", msg, line),
         }
     }
 }
@@ -48,7 +48,13 @@ impl Interpreter {
 
         match operator.kind {
             TokenKind::Bang => Ok(Value::Boolean(!value.as_bool())),
-            TokenKind::Minus => Ok(Value::Number(0f64 - value.as_number())),
+            TokenKind::Minus => match value {
+                Value::Number(r) => Ok(Value::Number(-r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operand must be a number.".to_string(),
+                    operator.line,
+                )),
+            },
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled unary {}",
                 operator.lexeme
@@ -73,30 +79,35 @@ impl Interpreter {
                 (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
                 _ => Err(InterpreterError::RuntimeError(
                     "Operands must be two numbers or two strings.".to_string(),
+                    operator.line,
                 )),
             },
             TokenKind::Less => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l < r)),
                 _ => Err(InterpreterError::RuntimeError(
                     "Operands must be two numbers or two strings.".to_string(),
+                    operator.line,
                 )),
             },
             TokenKind::LessEqual => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l <= r)),
                 _ => Err(InterpreterError::RuntimeError(
                     "Operands must be two numbers or two strings.".to_string(),
+                    operator.line,
                 )),
             },
             TokenKind::Greater => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l > r)),
                 _ => Err(InterpreterError::RuntimeError(
                     "Operands must be two numbers or two strings.".to_string(),
+                    operator.line,
                 )),
             },
             TokenKind::GreaterEqual => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l >= r)),
                 _ => Err(InterpreterError::RuntimeError(
                     "Operands must be two numbers or two strings.".to_string(),
+                    operator.line,
                 )),
             },
             TokenKind::EqualEqual => match (left, right) {
