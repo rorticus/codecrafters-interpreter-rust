@@ -134,9 +134,15 @@ impl Interpreter {
                 (Value::Boolean(l), Value::Boolean(r)) => Ok(Value::Boolean(l != r)),
                 _ => Ok(Value::Boolean(false)),
             },
-            TokenKind::Minus => Ok(Value::Number(left.as_number() - right.as_number())),
+            TokenKind::Minus => match (left, right) {
+                (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l - r)),
+                _ => Err(InterpreterError::RuntimeError(
+                    "Operands must be numbers.".to_string(),
+                    operator.line,
+                )),
+            },
             _ => Err(InterpreterError::Internal(format!(
-                "Unhandled binary operation {}",
+                "Unhandled binary operator {}",
                 operator.lexeme
             ))),
         }
