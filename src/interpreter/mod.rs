@@ -4,10 +4,10 @@ use crate::{
     interpreter::value::Value,
     lexer::{Token, TokenKind},
     parser::expr::Expr,
+    parser::stmt::Stmt,
 };
 
 pub enum InterpreterError {
-    UnhandledException,
     Internal(String),
     RuntimeError(String, usize),
 }
@@ -15,7 +15,6 @@ pub enum InterpreterError {
 impl std::fmt::Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InterpreterError::UnhandledException => write!(f, "Unhandled Exception"),
             InterpreterError::Internal(msg) => write!(f, "Internal error: {}", msg),
             InterpreterError::RuntimeError(msg, line) => write!(f, "{}\n[Line {}]", msg, line),
         }
@@ -29,6 +28,20 @@ impl Interpreter {
         Interpreter {}
     }
 
+    pub fn execute(&self, stmt: &Stmt) -> Result<(), InterpreterError> {
+        match stmt {
+            Stmt::Expression(e) => {
+                self.evaluate(e)?;
+                Ok(())
+            }
+            Stmt::Print(e) => {
+                let value = self.evaluate(e)?;
+                println!("{value}");
+                Ok(())
+            }
+        }
+    }
+
     pub fn evaluate(&self, expr: &Expr) -> Result<Value, InterpreterError> {
         match expr {
             Expr::Literal(literal) => Ok(Value::from_literal(literal)),
@@ -39,7 +52,6 @@ impl Interpreter {
                 operator,
                 right,
             } => self.eval_binary(left, operator, right),
-            _ => Err(InterpreterError::UnhandledException),
         }
     }
 

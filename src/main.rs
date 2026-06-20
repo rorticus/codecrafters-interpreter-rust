@@ -5,6 +5,7 @@ use std::fs;
 use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::parser::stmt::Stmt;
 
 mod interpreter;
 mod lexer;
@@ -78,7 +79,7 @@ fn main() {
 
             let mut parser = Parser::new(tokens);
 
-            match parser.parse() {
+            match parser.parse_expression() {
                 Ok(result) => {
                     println!("{}", result.pretty_print());
                 }
@@ -117,7 +118,7 @@ fn main() {
 
             let mut parser = Parser::new(tokens);
 
-            match parser.parse() {
+            match parser.parse_expression() {
                 Ok(result) => {
                     let interpretter = Interpreter::new();
                     match interpretter.evaluate(&result) {
@@ -131,8 +132,57 @@ fn main() {
                     }
                 }
                 Err(e) => {
-                    eprintln!("Parse Error: {e}");
-                    std::process::exit(65);
+                    eprintln!("{e}");
+                    std::process::exit(70);
+                }
+            }
+        }
+        "run" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                eprintln!("Failed to read file {}", filename);
+                String::new()
+            });
+
+            let l = Lexer::new(&file_contents);
+            let mut has_error = false;
+
+            let mut tokens = Vec::new();
+
+            for result in l {
+                match result {
+                    Ok(token) => {
+                        tokens.push(token);
+                    }
+                    Err(e) => {
+                        has_error = true;
+                        eprintln!("{e}")
+                    }
+                }
+            }
+
+            if has_error {
+                std::process::exit(65);
+            }
+
+            let mut parser = Parser::new(tokens);
+
+            let statements = parser.parse();
+
+            let interpretter = Interpreter::new();
+
+            for statement in statements {
+                match statement {
+                    Ok(result) => match interpretter.execute(&result) {
+                        Ok(_) => {}
+                        Err(e) => {
+                            eprintln!("{e}");
+                            std::process::exit(70);
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("Parse Error: {e}");
+                        std::process::exit(65);
+                    }
                 }
             }
         }

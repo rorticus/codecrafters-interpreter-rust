@@ -1,8 +1,9 @@
 pub mod expr;
+pub mod stmt;
 
 use crate::{
     lexer::{Token, TokenKind},
-    parser::expr::Expr,
+    parser::{expr::Expr, stmt::Stmt},
 };
 use std::fmt::Display;
 
@@ -56,8 +57,30 @@ impl Parser {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expr, ParseError> {
+    pub fn parse_expression(&mut self) -> Result<Expr, ParseError> {
         self.expression()
+    }
+
+    pub fn parse(&mut self) -> Vec<Result<Stmt, ParseError>> {
+        let mut statements = Vec::new();
+        while self.peek().is_some() {
+            statements.push(self.statement());
+        }
+
+        statements
+    }
+
+    fn statement(&mut self) -> Result<Stmt, ParseError> {
+        if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Print)) {
+            self.advance();
+            let value = self.expression()?;
+            self.expect(TokenKind::Semicolon)?;
+            Ok(Stmt::Print(value))
+        } else {
+            let value = self.expression()?;
+            self.expect(TokenKind::Semicolon)?;
+            Ok(Stmt::Expression(value))
+        }
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {

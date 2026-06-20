@@ -36,19 +36,4 @@ impl Value {
             Value::String(v) => v.is_empty(),
         }
     }
-
-    pub fn as_number(&self) -> f64 {
-        match self {
-            Value::Nil => 0f64,
-            Value::Boolean(v) => {
-                if *v {
-                    1f64
-                } else {
-                    0f64
-                }
-            }
-            Value::Number(v) => *v,
-            Value::String(v) => v.parse::<f64>().unwrap_or(0f64),
-        }
-    }
 }
