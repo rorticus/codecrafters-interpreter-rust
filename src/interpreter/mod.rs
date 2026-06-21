@@ -55,9 +55,11 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Block(statements) => {
+                self.environment.push();
                 for stmt in statements {
                     self.execute(stmt)?;
                 }
+                self.environment.pop();
 
                 Ok(())
             }

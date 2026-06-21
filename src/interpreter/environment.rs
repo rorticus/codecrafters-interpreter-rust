@@ -2,25 +2,36 @@ use crate::interpreter::Value;
 use std::collections::HashMap;
 
 pub struct Environment {
-    values: HashMap<String, Value>,
+    scopes: Vec<HashMap<String, Value>>,
 }
 
 impl Environment {
     pub fn new() -> Self {
         Environment {
-            values: HashMap::new(),
+            scopes: vec![HashMap::new()],
         }
     }
 
+    pub fn push(&mut self) {
+        self.scopes.push(HashMap::new());
+    }
+
+    pub fn pop(&mut self) {
+        self.scopes.pop();
+    }
+
     pub fn define(&mut self, name: &str, value: &Value) {
-        self.values.insert(name.to_string(), value.clone());
+        self.scopes
+            .last_mut()
+            .unwrap()
+            .insert(name.to_string(), value.clone());
     }
 
     pub fn get(&self, name: &str) -> Option<&Value> {
-        self.values.get(&name.to_string())
+        self.scopes.last().unwrap().get(&name.to_string())
     }
 
     pub fn has(&self, name: &str) -> bool {
-        self.values.contains_key(&name.to_string())
+        self.scopes.last().unwrap().contains_key(&name.to_string())
     }
 }
