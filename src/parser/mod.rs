@@ -130,6 +130,7 @@ impl Parser {
                 Ok(Stmt::Print(value))
             }
             Some(TokenKind::If) => Ok(self.parse_if()?),
+            Some(TokenKind::While) => Ok(self.parse_while()?),
             _ => {
                 let value = self.expression()?;
                 self.expect(TokenKind::Semicolon)?;
@@ -341,5 +342,20 @@ impl Parser {
             then_branch: Box::new(statement),
             else_branch: else_statement,
         })
+    }
+
+    fn parse_while(&mut self) -> Result<Stmt, ParseError> {
+        self.advance();
+
+        self.expect(TokenKind::LeftParen)?;
+        let condition = self.expression()?;
+        self.expect(TokenKind::RightParen)?;
+
+        let block = self.block()?;
+
+        return Ok(Stmt::While {
+            condition,
+            block: Box::new(block),
+        });
     }
 }

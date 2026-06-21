@@ -10,4 +10,8 @@ pub enum Stmt {
         then_branch: Box<Stmt>,
         else_branch: Option<Box<Stmt>>,
     },
+    While {
+        condition: Expr,
+        block: Box<Stmt>,
+    },
 }

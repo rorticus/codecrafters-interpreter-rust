@@ -78,6 +78,19 @@ impl Interpreter {
 
                 Ok(())
             }
+            Stmt::While { condition, block } => {
+                loop {
+                    let value = self.evaluate(condition)?;
+
+                    if value.as_bool() {
+                        self.execute(block)?;
+                    } else {
+                        break;
+                    }
+                }
+
+                Ok(())
+            }
         }
     }
 
