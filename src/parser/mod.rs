@@ -279,7 +279,7 @@ impl Parser {
                         self.expect(TokenKind::RightParen)?; // consume the closing ')'
                         Ok(Expr::Grouping(Box::new(inner)))
                     }
-                    TokenKind::Identifier(name) => Ok(Expr::Identifier(name.clone())),
+                    TokenKind::Identifier(_) => Ok(Expr::Identifier(t.clone())),
                     _ => Err(ParseError::ExpectedExpr(t.clone())),
                 }
             }

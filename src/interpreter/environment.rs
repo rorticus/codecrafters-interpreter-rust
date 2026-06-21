@@ -20,18 +20,34 @@ impl Environment {
         self.scopes.pop();
     }
 
-    pub fn define(&mut self, name: &str, value: &Value) {
-        self.scopes
-            .last_mut()
-            .unwrap()
-            .insert(name.to_string(), value.clone());
+    pub fn get(&self, name: &str) -> Option<&Value> {
+        for scope in self.scopes.iter().rev() {
+            if let Some(v) = scope.get(name) {
+                return Some(v);
+            }
+        }
+        None
     }
 
-    pub fn get(&self, name: &str) -> Option<&Value> {
-        self.scopes.last().unwrap().get(&name.to_string())
+    pub fn assign(&mut self, name: &str, value: Value) -> bool {
+        // walk scopes inward→outward to find where the variable was declared
+        for scope in self.scopes.iter_mut().rev() {
+            if scope.contains_key(name) {
+                scope.insert(name.to_string(), value);
+                return true;
+            }
+        }
+        false
     }
 
     pub fn has(&self, name: &str) -> bool {
-        self.scopes.last().unwrap().contains_key(&name.to_string())
+        self.get(name).is_some()
+    }
+
+    pub fn define(&mut self, name: &str, value: Value) {
+        self.scopes
+            .last_mut()
+            .unwrap()
+            .insert(name.to_string(), value);
     }
 }

@@ -50,7 +50,7 @@ impl Interpreter {
                     Value::Nil
                 };
 
-                self.environment.define(name, &val);
+                self.environment.define(name, val);
 
                 Ok(())
             }
@@ -76,22 +76,22 @@ impl Interpreter {
                 operator,
                 right,
             } => self.eval_binary(left, operator, right),
-            Expr::Identifier(name) => match self.environment.get(name) {
+            Expr::Identifier(name) => match self.environment.get(&name.lexeme) {
                 Some(v) => Ok(v.clone()),
                 None => Err(InterpreterError::RuntimeError(
-                    format!("Undeclared variable {}", name),
-                    0,
+                    format!("Undeclared variable {}", name.lexeme),
+                    name.line,
                 )),
             },
             Expr::Assign { name, value } => {
-                if !self.environment.has(name) {
+                if !self.environment.has(&name.lexeme) {
                     return Err(InterpreterError::RuntimeError(
-                        format!("Undeclared identifier {}", name),
-                        0,
+                        format!("Undeclared identifier {}", name.lexeme),
+                        name.line,
                     ));
                 } else {
                     let v = self.evaluate(value)?;
-                    self.environment.define(name, &v);
+                    self.environment.assign(&name.lexeme, v.clone());
                     Ok(v)
                 }
             }

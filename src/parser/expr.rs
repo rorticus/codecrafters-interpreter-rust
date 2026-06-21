@@ -10,9 +10,9 @@ pub enum LiteralValue {
 
 pub enum Expr {
     Literal(LiteralValue),
-    Identifier(String),
+    Identifier(Token),
     Assign {
-        name: String,
+        name: Token,
         value: Box<Expr>,
     },
     Grouping(Box<Expr>),
@@ -49,7 +49,7 @@ impl Expr {
                 format!("({} {})", operator.lexeme, right.pretty_print())
             }
             Expr::Identifier(t) => {
-                format!("{}", t)
+                format!("{}", t.lexeme)
             }
             Expr::Assign { name, value } => {
                 format!("{} = {}", name, value.pretty_print())
