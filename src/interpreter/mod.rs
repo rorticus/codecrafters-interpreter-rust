@@ -54,6 +54,13 @@ impl Interpreter {
 
                 Ok(())
             }
+            Stmt::Block(statements) => {
+                for stmt in statements {
+                    self.execute(stmt)?;
+                }
+
+                Ok(())
+            }
         }
     }
 

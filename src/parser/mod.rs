@@ -78,10 +78,27 @@ impl Parser {
     pub fn parse(&mut self) -> Vec<Result<Stmt, ParseError>> {
         let mut statements = Vec::new();
         while self.peek().is_some() {
-            statements.push(self.declaration());
+            statements.push(self.block());
         }
 
         statements
+    }
+
+    fn block(&mut self) -> Result<Stmt, ParseError> {
+        if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::LeftBrace)) {
+            self.advance();
+            let mut statements = Vec::new();
+
+            while !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightBrace)) {
+                statements.push(self.block()?);
+            }
+
+            self.advance();
+
+            Ok(Stmt::Block(statements))
+        } else {
+            self.declaration()
+        }
     }
 
     fn declaration(&mut self) -> Result<Stmt, ParseError> {
