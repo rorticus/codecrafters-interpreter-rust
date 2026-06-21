@@ -145,15 +145,15 @@ impl Interpreter {
     ) -> Result<Value, InterpreterError> {
         match operator.kind {
             TokenKind::Or => {
-                let left = self.evaluate(left)?.as_bool();
+                let left = self.evaluate(left)?;
 
-                if left {
-                    return Ok(Value::Boolean(true));
+                if left.as_bool() {
+                    return Ok(left);
                 } else {
-                    let right = self.evaluate(right)?.as_bool();
+                    let right = self.evaluate(right)?;
 
-                    if right {
-                        return Ok(Value::Boolean(true));
+                    if right.as_bool() {
+                        return Ok(right);
                     } else {
                         return Ok(Value::Boolean(false));
                     }
