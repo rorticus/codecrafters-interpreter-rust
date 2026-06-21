@@ -1,10 +1,10 @@
+pub mod environment;
 pub mod value;
 
 use crate::{
-    interpreter::value::Value,
+    interpreter::{environment::Environment, value::Value},
     lexer::{Token, TokenKind},
-    parser::expr::Expr,
-    parser::stmt::Stmt,
+    parser::{ParseError, expr::Expr, stmt::Stmt},
 };
 
 pub enum InterpreterError {
@@ -21,14 +21,18 @@ impl std::fmt::Display for InterpreterError {
     }
 }
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Environment,
+}
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {}
+        Interpreter {
+            environment: Environment::new(),
+        }
     }
 
-    pub fn execute(&self, stmt: &Stmt) -> Result<(), InterpreterError> {
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), InterpreterError> {
         match stmt {
             Stmt::Expression(e) => {
                 self.evaluate(e)?;
@@ -37,6 +41,15 @@ impl Interpreter {
             Stmt::Print(e) => {
                 let value = self.evaluate(e)?;
                 println!("{value}");
+                Ok(())
+            }
+            Stmt::Declaration(name, value) => {
+                if let Some(v) = value {
+                    self.environment.define(name, &self.evaluate(v)?);
+                } else {
+                    self.environment.define(name, &Value::Nil);
+                }
+
                 Ok(())
             }
         }
@@ -52,6 +65,13 @@ impl Interpreter {
                 operator,
                 right,
             } => self.eval_binary(left, operator, right),
+            Expr::Identifier(name) => match self.environment.get(name) {
+                Some(v) => Ok(v.clone()),
+                None => Err(InterpreterError::RuntimeError(
+                    format!("Undeclared variable {}", name),
+                    0,
+                )),
+            },
         }
     }
 

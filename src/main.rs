@@ -5,7 +5,6 @@ use std::fs;
 use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
-use crate::parser::stmt::Stmt;
 
 mod interpreter;
 mod lexer;
@@ -168,7 +167,7 @@ fn main() {
 
             let statements = parser.parse();
 
-            let interpretter = Interpreter::new();
+            let mut interpretter = Interpreter::new();
 
             for statement in statements {
                 match statement {

@@ -10,6 +10,7 @@ pub enum LiteralValue {
 
 pub enum Expr {
     Literal(LiteralValue),
+    Identifier(String),
     Grouping(Box<Expr>),
     Unary {
         operator: Token,
@@ -42,6 +43,9 @@ impl Expr {
             }
             Expr::Unary { operator, right } => {
                 format!("({} {})", operator.lexeme, right.pretty_print())
+            }
+            Expr::Identifier(t) => {
+                format!("{}", t)
             }
             Expr::Binary {
                 left,

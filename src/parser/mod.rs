@@ -11,6 +11,7 @@ pub enum ParseError {
     ExpectedToken(TokenKind),
     ExpectedExpr(Token),
     UnexpectedEndOfInput,
+    ExpectedIdentifier,
 }
 
 impl Display for ParseError {
@@ -23,6 +24,7 @@ impl Display for ParseError {
                 t.line, t.lexeme
             ),
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
+            ParseError::ExpectedIdentifier => write!(f, "Expected identifier"),
         }
     }
 }
@@ -57,6 +59,16 @@ impl Parser {
         }
     }
 
+    fn expect_identifier(&mut self) -> Result<String, ParseError> {
+        let name = match self.peek().map(|k| &k.kind) {
+            Some(TokenKind::Identifier(name)) => name.clone(),
+            _ => return Err(ParseError::ExpectedIdentifier),
+        };
+
+        self.advance();
+        Ok(name)
+    }
+
     pub fn parse_expression(&mut self) -> Result<Expr, ParseError> {
         self.expression()
     }
@@ -64,10 +76,24 @@ impl Parser {
     pub fn parse(&mut self) -> Vec<Result<Stmt, ParseError>> {
         let mut statements = Vec::new();
         while self.peek().is_some() {
-            statements.push(self.statement());
+            statements.push(self.declaration());
         }
 
         statements
+    }
+
+    fn declaration(&mut self) -> Result<Stmt, ParseError> {
+        if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Var)) {
+            self.advance();
+            let var_name = self.expect_identifier()?;
+            self.expect(TokenKind::Equal)?;
+            let expr = self.expression()?;
+            self.expect(TokenKind::Semicolon)?;
+
+            Ok(Stmt::Declaration(var_name, Some(expr)))
+        } else {
+            self.statement()
+        }
     }
 
     fn statement(&mut self) -> Result<Stmt, ParseError> {
@@ -206,6 +232,7 @@ impl Parser {
                         self.expect(TokenKind::RightParen)?; // consume the closing ')'
                         Ok(Expr::Grouping(Box::new(inner)))
                     }
+                    TokenKind::Identifier(name) => Ok(Expr::Identifier(name.clone())),
                     _ => Err(ParseError::ExpectedExpr(t.clone())),
                 }
             }

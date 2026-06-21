@@ -1,5 +1,6 @@
 use crate::parser::expr::LiteralValue;
 
+#[derive(Clone)]
 pub enum Value {
     Nil,
     Boolean(bool),
