@@ -4,7 +4,7 @@ pub mod value;
 use crate::{
     interpreter::{environment::Environment, value::Value},
     lexer::{Token, TokenKind},
-    parser::{ParseError, expr::Expr, stmt::Stmt},
+    parser::{expr::Expr, stmt::Stmt},
 };
 
 pub enum InterpreterError {
@@ -44,18 +44,20 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Declaration(name, value) => {
-                if let Some(v) = value {
-                    self.environment.define(name, &self.evaluate(v)?);
+                let val = if let Some(v) = value {
+                    self.evaluate(v)?
                 } else {
-                    self.environment.define(name, &Value::Nil);
-                }
+                    Value::Nil
+                };
+
+                self.environment.define(name, &val);
 
                 Ok(())
             }
         }
     }
 
-    pub fn evaluate(&self, expr: &Expr) -> Result<Value, InterpreterError> {
+    pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, InterpreterError> {
         match expr {
             Expr::Literal(literal) => Ok(Value::from_literal(literal)),
             Expr::Grouping(expr) => self.evaluate(expr),
@@ -72,10 +74,22 @@ impl Interpreter {
                     0,
                 )),
             },
+            Expr::Assign { name, value } => {
+                if !self.environment.has(name) {
+                    return Err(InterpreterError::RuntimeError(
+                        format!("Undeclared identifier {}", name),
+                        0,
+                    ));
+                } else {
+                    let v = self.evaluate(value)?;
+                    self.environment.define(name, &v);
+                    Ok(v)
+                }
+            }
         }
     }
 
-    fn eval_unary(&self, operator: &Token, right: &Expr) -> Result<Value, InterpreterError> {
+    fn eval_unary(&mut self, operator: &Token, right: &Expr) -> Result<Value, InterpreterError> {
         let value = self.evaluate(right)?;
 
         match operator.kind {
@@ -95,7 +109,7 @@ impl Interpreter {
     }
 
     fn eval_binary(
-        &self,
+        &mut self,
         left: &Expr,
         operator: &Token,
         right: &Expr,

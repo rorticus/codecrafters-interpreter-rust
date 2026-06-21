@@ -12,6 +12,7 @@ pub enum ParseError {
     ExpectedExpr(Token),
     UnexpectedEndOfInput,
     ExpectedIdentifier,
+    InvalidAssignmentTarget,
 }
 
 impl Display for ParseError {
@@ -25,6 +26,7 @@ impl Display for ParseError {
             ),
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
             ParseError::ExpectedIdentifier => write!(f, "Expected identifier"),
+            ParseError::InvalidAssignmentTarget => write!(f, "Invalid assignment target"),
         }
     }
 }
@@ -116,7 +118,29 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr, ParseError> {
+        let expr = self.equality()?;
+
+        if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Equal)) {
+            self.advance();
+
+            let value = self.assignment()?;
+
+            match expr {
+                Expr::Identifier(name) => {
+                    return Ok(Expr::Assign {
+                        name,
+                        value: Box::new(value),
+                    });
+                }
+                _ => return Err(ParseError::InvalidAssignmentTarget),
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {

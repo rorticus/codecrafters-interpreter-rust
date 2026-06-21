@@ -119,7 +119,7 @@ fn main() {
 
             match parser.parse_expression() {
                 Ok(result) => {
-                    let interpretter = Interpreter::new();
+                    let mut interpretter = Interpreter::new();
                     match interpretter.evaluate(&result) {
                         Ok(value) => {
                             println!("{}", value);

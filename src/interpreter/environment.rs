@@ -19,4 +19,8 @@ impl Environment {
     pub fn get(&self, name: &str) -> Option<&Value> {
         self.values.get(&name.to_string())
     }
+
+    pub fn has(&self, name: &str) -> bool {
+        self.values.contains_key(&name.to_string())
+    }
 }
