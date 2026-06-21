@@ -91,6 +91,37 @@ impl Interpreter {
 
                 Ok(())
             }
+            Stmt::For {
+                initializer,
+                condition,
+                increment,
+                block,
+            } => {
+                self.environment.push();
+
+                if let Some(init) = initializer {
+                    self.execute(init)?;
+                }
+
+                loop {
+                    if let Some(cond) = condition {
+                        let result = self.evaluate(cond)?;
+                        if !result.as_bool() {
+                            break;
+                        }
+                    }
+
+                    self.execute(block)?;
+
+                    if let Some(inc) = increment {
+                        self.evaluate(inc)?;
+                    }
+                }
+
+                self.environment.pop();
+
+                Ok(())
+            }
         }
     }
 

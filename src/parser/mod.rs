@@ -131,6 +131,7 @@ impl Parser {
             }
             Some(TokenKind::If) => Ok(self.parse_if()?),
             Some(TokenKind::While) => Ok(self.parse_while()?),
+            Some(TokenKind::For) => self.parse_for(),
             _ => {
                 let value = self.expression()?;
                 self.expect(TokenKind::Semicolon)?;
@@ -357,5 +358,38 @@ impl Parser {
             condition,
             block: Box::new(block),
         });
+    }
+
+    fn parse_for(&mut self) -> Result<Stmt, ParseError> {
+        let mut initializer = None;
+        let mut condition = None;
+        let mut incrementer = None;
+
+        self.advance();
+
+        self.expect(TokenKind::LeftParen)?;
+
+        if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
+            initializer = Some(Box::new(self.declaration()?));
+        }
+
+        if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
+            condition = Some(self.expression()?);
+        }
+
+        if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
+            incrementer = Some(self.expression()?);
+        }
+
+        self.expect(TokenKind::RightParen)?;
+
+        let block = self.block()?;
+
+        Ok(Stmt::For {
+            initializer,
+            condition,
+            increment: incrementer,
+            block: Box::new(block),
+        })
     }
 }

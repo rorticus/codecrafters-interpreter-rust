@@ -14,4 +14,10 @@ pub enum Stmt {
         condition: Expr,
         block: Box<Stmt>,
     },
+    For {
+        initializer: Option<Box<Stmt>>,
+        condition: Option<Expr>,
+        increment: Option<Expr>,
+        block: Box<Stmt>,
+    },
 }
