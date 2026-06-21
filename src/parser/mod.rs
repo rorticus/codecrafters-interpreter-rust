@@ -371,12 +371,15 @@ impl Parser {
 
         if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
             initializer = Some(Box::new(self.declaration()?));
+        } else {
+            self.expect(TokenKind::Semicolon)?;
         }
 
         if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
             condition = Some(self.expression()?);
-            self.expect(TokenKind::Semicolon)?;
         }
+
+        self.expect(TokenKind::Semicolon)?;
 
         if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightParen)) {
             incrementer = Some(self.expression()?);
