@@ -380,9 +380,9 @@ impl Parser {
 
         if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightParen)) {
             incrementer = Some(self.expression()?);
-        } else {
-            self.expect(TokenKind::RightParen)?;
         }
+
+        self.expect(TokenKind::RightParen)?;
 
         let block = self.block()?;
 
