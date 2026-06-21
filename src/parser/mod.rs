@@ -27,6 +27,7 @@ impl Display for ParseError {
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
             ParseError::ExpectedIdentifier => write!(f, "Expected identifier"),
             ParseError::InvalidAssignmentTarget => write!(f, "Invalid assignment target"),
+            ParseError::UnexpectedDeclaration => write!(f, "Unexepcted var "),
         }
     }
 }
@@ -121,6 +122,15 @@ impl Parser {
         }
     }
 
+    fn non_decl_statement(&mut self) -> Result<Stmt, ParseError> {
+        let stmt = self.block()?;
+
+        match stmt {
+            Stmt::Declaration(_, _) => Err(ParseError::ExpectedExpr(self.peek().unwrap().clone())),
+            _ => Ok(stmt),
+        }
+    }
+
     fn statement(&mut self) -> Result<Stmt, ParseError> {
         match self.peek().map(|k| &k.kind) {
             Some(TokenKind::Print) => {
@@ -132,12 +142,14 @@ impl Parser {
             Some(TokenKind::If) => Ok(self.parse_if()?),
             Some(TokenKind::While) => Ok(self.parse_while()?),
             Some(TokenKind::For) => self.parse_for(),
-            _ => {
-                let value = self.expression()?;
-                self.expect(TokenKind::Semicolon)?;
-                Ok(Stmt::Expression(value))
-            }
+            _ => self.parse_expression_statement(),
         }
+    }
+
+    fn parse_expression_statement(&mut self) -> Result<Stmt, ParseError> {
+        let value = self.expression()?;
+        self.expect(TokenKind::Semicolon)?;
+        Ok(Stmt::Expression(value))
     }
 
     fn expression(&mut self) -> Result<Expr, ParseError> {
@@ -329,13 +341,13 @@ impl Parser {
 
         self.expect(TokenKind::RightParen)?;
 
-        let statement = self.block()?;
+        let statement = self.non_decl_statement()?;
         let mut else_statement = None;
 
         if matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Else)) {
             self.advance();
 
-            else_statement = Some(Box::new(self.block()?));
+            else_statement = Some(Box::new(self.non_decl_statement()?));
         }
 
         Ok(Stmt::If {
@@ -352,7 +364,7 @@ impl Parser {
         let condition = self.expression()?;
         self.expect(TokenKind::RightParen)?;
 
-        let block = self.block()?;
+        let block = self.non_decl_statement()?;
 
         return Ok(Stmt::While {
             condition,
@@ -370,7 +382,11 @@ impl Parser {
         self.expect(TokenKind::LeftParen)?;
 
         if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
-            initializer = Some(Box::new(self.declaration()?));
+            if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Var)) {
+                initializer = Some(Box::new(self.declaration()?));
+            } else {
+                initializer = Some(Box::new(self.parse_expression_statement()?));
+            }
         } else {
             self.expect(TokenKind::Semicolon)?;
         }
@@ -387,7 +403,7 @@ impl Parser {
 
         self.expect(TokenKind::RightParen)?;
 
-        let block = self.block()?;
+        let block = self.non_decl_statement()?;
 
         Ok(Stmt::For {
             initializer,
