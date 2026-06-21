@@ -5,5 +5,9 @@ pub enum Stmt {
     Print(Expr),
     Declaration(String, Option<Expr>),
     Block(Vec<Stmt>),
-    If { condition: Expr, then: Box<Stmt> },
+    If {
+        condition: Expr,
+        thenBranch: Box<Stmt>,
+        elseBranch: Option<Box<Stmt>>,
+    },
 }

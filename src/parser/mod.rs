@@ -129,21 +129,7 @@ impl Parser {
                 self.expect(TokenKind::Semicolon)?;
                 Ok(Stmt::Print(value))
             }
-            Some(TokenKind::If) => {
-                self.advance();
-                self.expect(TokenKind::LeftParen)?;
-
-                let condition = self.expression()?;
-
-                self.expect(TokenKind::RightParen)?;
-
-                let statement = self.block()?;
-
-                Ok(Stmt::If {
-                    condition,
-                    then: Box::new(statement),
-                })
-            }
+            Some(TokenKind::If) => Ok(self.parse_if()?),
             _ => {
                 let value = self.expression()?;
                 self.expect(TokenKind::Semicolon)?;
@@ -303,5 +289,29 @@ impl Parser {
             }
             None => Err(ParseError::UnexpectedEndOfInput),
         }
+    }
+
+    fn parse_if(&mut self) -> Result<Stmt, ParseError> {
+        self.advance();
+        self.expect(TokenKind::LeftParen)?;
+
+        let condition = self.expression()?;
+
+        self.expect(TokenKind::RightParen)?;
+
+        let statement = self.block()?;
+        let mut else_statement = None;
+
+        if matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Else)) {
+            self.advance();
+
+            else_statement = Some(Box::new(self.block()?));
+        }
+
+        Ok(Stmt::If {
+            condition,
+            thenBranch: Box::new(statement),
+            elseBranch: else_statement,
+        })
     }
 }

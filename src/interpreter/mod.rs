@@ -63,11 +63,17 @@ impl Interpreter {
 
                 Ok(())
             }
-            Stmt::If { condition, then } => {
+            Stmt::If {
+                condition,
+                thenBranch,
+                elseBranch,
+            } => {
                 let value = self.evaluate(condition)?;
 
                 if value.as_bool() {
-                    self.execute(then)?;
+                    self.execute(thenBranch)?;
+                } else if let Some(else_branch) = elseBranch {
+                    self.execute(else_branch)?;
                 }
 
                 Ok(())
