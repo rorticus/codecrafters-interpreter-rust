@@ -310,8 +310,8 @@ impl Parser {
 
         Ok(Stmt::If {
             condition,
-            thenBranch: Box::new(statement),
-            elseBranch: else_statement,
+            then_branch: Box::new(statement),
+            else_branch: else_statement,
         })
     }
 }

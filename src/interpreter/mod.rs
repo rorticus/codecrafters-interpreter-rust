@@ -65,14 +65,14 @@ impl Interpreter {
             }
             Stmt::If {
                 condition,
-                thenBranch,
-                elseBranch,
+                then_branch,
+                else_branch,
             } => {
                 let value = self.evaluate(condition)?;
 
                 if value.as_bool() {
-                    self.execute(thenBranch)?;
-                } else if let Some(else_branch) = elseBranch {
+                    self.execute(then_branch)?;
+                } else if let Some(else_branch) = else_branch {
                     self.execute(else_branch)?;
                 }
 
@@ -211,6 +211,8 @@ impl Interpreter {
                     operator.line,
                 )),
             },
+            TokenKind::Or => Ok(Value::Boolean(left.as_bool() || right.as_bool())),
+            TokenKind::And => Ok(Value::Boolean(left.as_bool() && right.as_bool())),
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled binary operator {}",
                 operator.lexeme
