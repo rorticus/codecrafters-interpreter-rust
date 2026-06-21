@@ -86,11 +86,17 @@ impl Parser {
         if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Var)) {
             self.advance();
             let var_name = self.expect_identifier()?;
-            self.expect(TokenKind::Equal)?;
-            let expr = self.expression()?;
-            self.expect(TokenKind::Semicolon)?;
 
-            Ok(Stmt::Declaration(var_name, Some(expr)))
+            if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Equal)) {
+                self.expect(TokenKind::Equal)?;
+                let expr = self.expression()?;
+                self.expect(TokenKind::Semicolon)?;
+
+                Ok(Stmt::Declaration(var_name, Some(expr)))
+            } else {
+                self.expect(TokenKind::Semicolon)?;
+                Ok(Stmt::Declaration(var_name, None))
+            }
         } else {
             self.statement()
         }
