@@ -148,29 +148,19 @@ impl Interpreter {
                 let left = self.evaluate(left)?;
 
                 if left.as_bool() {
-                    return Ok(left);
+                    Ok(left)
                 } else {
-                    let right = self.evaluate(right)?;
-
-                    if right.as_bool() {
-                        return Ok(right);
-                    } else {
-                        return Ok(Value::Boolean(false));
-                    }
+                    self.evaluate(right)
                 }
             }
             TokenKind::And => {
-                let left = self.evaluate(left)?.as_bool();
+                let left = self.evaluate(left)?;
 
-                if left {
-                    let right = self.evaluate(right)?.as_bool();
-
-                    if right {
-                        return Ok(Value::Boolean(true));
-                    }
+                if !left.as_bool() {
+                    Ok(left)
+                } else {
+                    self.evaluate(right)
                 }
-
-                return Ok(Value::Boolean(false));
             }
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled logical operator {}",
