@@ -375,13 +375,14 @@ impl Parser {
 
         if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
             condition = Some(self.expression()?);
+            self.expect(TokenKind::Semicolon)?;
         }
 
-        if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Semicolon)) {
+        if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightParen)) {
             incrementer = Some(self.expression()?);
+        } else {
+            self.expect(TokenKind::RightParen)?;
         }
-
-        self.expect(TokenKind::RightParen)?;
 
         let block = self.block()?;
 
