@@ -33,8 +33,7 @@ impl Value {
         match self {
             Value::Nil => false,
             Value::Boolean(v) => *v,
-            Value::Number(v) => *v != 0f64,
-            Value::String(v) => v.is_empty(),
+            _ => true,
         }
     }
 }
