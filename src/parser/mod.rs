@@ -122,15 +122,33 @@ impl Parser {
     }
 
     fn statement(&mut self) -> Result<Stmt, ParseError> {
-        if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Print)) {
-            self.advance();
-            let value = self.expression()?;
-            self.expect(TokenKind::Semicolon)?;
-            Ok(Stmt::Print(value))
-        } else {
-            let value = self.expression()?;
-            self.expect(TokenKind::Semicolon)?;
-            Ok(Stmt::Expression(value))
+        match self.peek().map(|k| &k.kind) {
+            Some(TokenKind::Print) => {
+                self.advance();
+                let value = self.expression()?;
+                self.expect(TokenKind::Semicolon)?;
+                Ok(Stmt::Print(value))
+            }
+            Some(TokenKind::If) => {
+                self.advance();
+                self.expect(TokenKind::LeftParen)?;
+
+                let condition = self.expression()?;
+
+                self.expect(TokenKind::RightParen)?;
+
+                let statement = self.block()?;
+
+                Ok(Stmt::If {
+                    condition,
+                    then: Box::new(statement),
+                })
+            }
+            _ => {
+                let value = self.expression()?;
+                self.expect(TokenKind::Semicolon)?;
+                Ok(Stmt::Expression(value))
+            }
         }
     }
 

@@ -63,6 +63,15 @@ impl Interpreter {
 
                 Ok(())
             }
+            Stmt::If { condition, then } => {
+                let value = self.evaluate(condition)?;
+
+                if value.as_bool() {
+                    self.execute(then)?;
+                }
+
+                Ok(())
+            }
         }
     }
 
