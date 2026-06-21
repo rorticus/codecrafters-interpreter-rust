@@ -25,6 +25,11 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Logical {
+        left: Box<Expr>,
+        operator: Token,
+        right: Box<Expr>,
+    },
 }
 
 impl Expr {
@@ -53,6 +58,18 @@ impl Expr {
             }
             Expr::Assign { name, value } => {
                 format!("{} = {}", name, value.pretty_print())
+            }
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => {
+                format!(
+                    "{} {} {}",
+                    left.pretty_print(),
+                    operator.lexeme,
+                    right.pretty_print()
+                )
             }
             Expr::Binary {
                 left,

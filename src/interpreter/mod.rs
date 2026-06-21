@@ -91,6 +91,11 @@ impl Interpreter {
                 operator,
                 right,
             } => self.eval_binary(left, operator, right),
+            Expr::Logical {
+                left,
+                operator,
+                right,
+            } => self.eval_logical(left, operator, right),
             Expr::Identifier(name) => match self.environment.get(&name.lexeme) {
                 Some(v) => Ok(v.clone()),
                 None => Err(InterpreterError::RuntimeError(
@@ -127,6 +132,48 @@ impl Interpreter {
             },
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled unary {}",
+                operator.lexeme
+            ))),
+        }
+    }
+
+    fn eval_logical(
+        &mut self,
+        left: &Expr,
+        operator: &Token,
+        right: &Expr,
+    ) -> Result<Value, InterpreterError> {
+        match operator.kind {
+            TokenKind::Or => {
+                let left = self.evaluate(left)?.as_bool();
+
+                if left {
+                    return Ok(Value::Boolean(true));
+                } else {
+                    let right = self.evaluate(right)?.as_bool();
+
+                    if right {
+                        return Ok(Value::Boolean(true));
+                    } else {
+                        return Ok(Value::Boolean(false));
+                    }
+                }
+            }
+            TokenKind::And => {
+                let left = self.evaluate(left)?.as_bool();
+
+                if left {
+                    let right = self.evaluate(right)?.as_bool();
+
+                    if right {
+                        return Ok(Value::Boolean(true));
+                    }
+                }
+
+                return Ok(Value::Boolean(false));
+            }
+            _ => Err(InterpreterError::Internal(format!(
+                "Unhandled logical operator {}",
                 operator.lexeme
             ))),
         }
@@ -211,8 +258,6 @@ impl Interpreter {
                     operator.line,
                 )),
             },
-            TokenKind::Or => Ok(Value::Boolean(left.as_bool() || right.as_bool())),
-            TokenKind::And => Ok(Value::Boolean(left.as_bool() && right.as_bool())),
             _ => Err(InterpreterError::Internal(format!(
                 "Unhandled binary operator {}",
                 operator.lexeme

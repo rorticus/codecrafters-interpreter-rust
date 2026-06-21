@@ -143,7 +143,7 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Result<Expr, ParseError> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Equal)) {
             self.advance();
@@ -162,6 +162,34 @@ impl Parser {
         }
 
         Ok(expr)
+    }
+
+    fn or(&mut self) -> Result<Expr, ParseError> {
+        let mut left = self.and()?;
+        while matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Or)) {
+            let operator = self.advance().unwrap().clone();
+            let right = self.and()?;
+            left = Expr::Logical {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            };
+        }
+        Ok(left)
+    }
+
+    fn and(&mut self) -> Result<Expr, ParseError> {
+        let mut left = self.equality()?;
+        while matches!(self.peek().map(|t| &t.kind), Some(TokenKind::And)) {
+            let operator = self.advance().unwrap().clone();
+            let right = self.equality()?;
+            left = Expr::Logical {
+                left: Box::new(left),
+                operator,
+                right: Box::new(right),
+            };
+        }
+        Ok(left)
     }
 
     fn equality(&mut self) -> Result<Expr, ParseError> {
