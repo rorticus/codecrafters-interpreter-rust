@@ -27,7 +27,6 @@ impl Display for ParseError {
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
             ParseError::ExpectedIdentifier => write!(f, "Expected identifier"),
             ParseError::InvalidAssignmentTarget => write!(f, "Invalid assignment target"),
-            ParseError::UnexpectedDeclaration => write!(f, "Unexepcted var "),
         }
     }
 }
