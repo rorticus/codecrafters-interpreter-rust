@@ -12,6 +12,7 @@ pub enum ParseError {
     ExpectedExpr(Token),
     UnexpectedEndOfInput,
     ExpectedIdentifier,
+    ExpectedBlock,
     InvalidAssignmentTarget,
 }
 
@@ -27,6 +28,7 @@ impl Display for ParseError {
             ParseError::UnexpectedEndOfInput => write!(f, "Unexpected end of input"),
             ParseError::ExpectedIdentifier => write!(f, "Expected identifier"),
             ParseError::InvalidAssignmentTarget => write!(f, "Invalid assignment target"),
+            ParseError::ExpectedBlock => write!(f, "Expected block"),
         }
     }
 }
@@ -140,7 +142,7 @@ impl Parser {
 
             self.expect(TokenKind::RightParen)?;
 
-            let body = self.non_decl_statement()?;
+            let body = self.expect_block_statement()?;
 
             Ok(Stmt::Function {
                 name: fn_name,
@@ -158,6 +160,15 @@ impl Parser {
         match stmt {
             Stmt::Declaration(name, _) => Err(ParseError::ExpectedExpr(name)),
             _ => Ok(stmt),
+        }
+    }
+
+    fn expect_block_statement(&mut self) -> Result<Stmt, ParseError> {
+        let stmt = self.block()?;
+
+        match stmt {
+            Stmt::Block(stmts) => Ok(Stmt::Block(stmts)),
+            _ => Err(ParseError::ExpectedBlock),
         }
     }
 
