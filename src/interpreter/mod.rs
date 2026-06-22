@@ -50,7 +50,7 @@ impl Interpreter {
                     Value::Nil
                 };
 
-                self.environment.define(name, val);
+                self.environment.define(&name.lexeme, val);
 
                 Ok(())
             }

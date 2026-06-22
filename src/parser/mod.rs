@@ -61,9 +61,9 @@ impl Parser {
         }
     }
 
-    fn expect_identifier(&mut self) -> Result<String, ParseError> {
+    fn expect_identifier(&mut self) -> Result<Token, ParseError> {
         let name = match self.peek().map(|k| &k.kind) {
-            Some(TokenKind::Identifier(name)) => name.clone(),
+            Some(TokenKind::Identifier(_)) => self.peek().unwrap().clone(),
             _ => return Err(ParseError::ExpectedIdentifier),
         };
 
@@ -125,7 +125,7 @@ impl Parser {
         let stmt = self.block()?;
 
         match stmt {
-            Stmt::Declaration(_, _) => Err(ParseError::ExpectedExpr(self.peek().unwrap().clone())),
+            Stmt::Declaration(name, _) => Err(ParseError::ExpectedExpr(name)),
             _ => Ok(stmt),
         }
     }
