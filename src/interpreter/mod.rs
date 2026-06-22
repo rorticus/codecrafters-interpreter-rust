@@ -17,6 +17,7 @@ pub enum InterpreterError {
 pub enum Signal {
     Break(usize),
     Continue(usize),
+    Return(Value),
     Error(InterpreterError),
 }
 
@@ -162,6 +163,24 @@ impl Interpreter {
             }
             Stmt::Break(t) => Err(Signal::Break(t.line)),
             Stmt::Continue(t) => Err(Signal::Continue(t.line)),
+            Stmt::Return(expr) => match expr {
+                Some(expr) => {
+                    let result = self.evaluate(expr)?;
+                    Err(Signal::Return(result))
+                }
+                None => Err(Signal::Return(Value::Nil)),
+            },
+            Stmt::Function { name, params, body } => {
+                self.environment.define(
+                    &name.lexeme,
+                    Value::Function {
+                        params: params.iter().map(|p| p.lexeme.clone()).collect(),
+                        body: *body.clone(),
+                    },
+                );
+
+                Ok(())
+            }
         }
     }
 
@@ -348,6 +367,31 @@ impl Interpreter {
                 let args: Result<Vec<Value>, Signal> =
                     arguments.iter().map(|arg| self.evaluate(arg)).collect();
                 fn_call(args?)
+            }
+            Value::Function { params, body } => {
+                self.environment.push();
+
+                if arguments.len() != params.len() {
+                    return Err(Signal::Error(InterpreterError::RuntimeError(
+                        format!("Incorrect number of arguments to function"),
+                        0,
+                    )));
+                }
+
+                for i in 0..arguments.len() {
+                    let arg_val = self.evaluate(&arguments[i])?;
+                    self.environment.define(params[i].as_str(), arg_val);
+                }
+
+                let result = self.execute(&body);
+
+                self.environment.pop();
+
+                match result {
+                    Ok(_) => Ok(Value::Nil),
+                    Err(Signal::Return(v)) => Ok(v),
+                    Err(e) => Err(e),
+                }
             }
             _ => Err(Signal::Error(InterpreterError::RuntimeError(
                 format!("Trying to call non-function"),

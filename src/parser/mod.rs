@@ -116,6 +116,37 @@ impl Parser {
                 self.expect(TokenKind::Semicolon)?;
                 Ok(Stmt::Declaration(var_name, None))
             }
+        } else if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Fun)) {
+            self.advance();
+
+            let fn_name = self.expect_identifier()?;
+
+            self.expect(TokenKind::LeftParen)?;
+
+            let mut params = vec![];
+
+            if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::RightParen)) {
+                // parameters
+                loop {
+                    params.push(self.expect_identifier()?);
+
+                    if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Comma)) {
+                        break;
+                    }
+
+                    self.advance();
+                }
+            }
+
+            self.expect(TokenKind::RightParen)?;
+
+            let body = self.non_decl_statement()?;
+
+            Ok(Stmt::Function {
+                name: fn_name,
+                params,
+                body: Box::new(body),
+            })
         } else {
             self.statement()
         }
@@ -148,6 +179,15 @@ impl Parser {
             Some(TokenKind::Continue) => {
                 let t = self.advance().unwrap();
                 Ok(Stmt::Continue(t.clone()))
+            }
+            Some(TokenKind::Return) => {
+                self.advance();
+
+                if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Semicolon)) {
+                    return Ok(Stmt::Return(Some(self.expression()?)));
+                }
+
+                Ok(Stmt::Return(None))
             }
             _ => self.parse_expression_statement(),
         }

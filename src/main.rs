@@ -135,6 +135,9 @@ fn main() {
                                 interpreter::Signal::Continue(line) => {
                                     eprintln!("[Line {}] Unexpected continue statement", line);
                                 }
+                                interpreter::Signal::Return(_) => {
+                                    eprintln!("Unexpected return statement");
+                                }
                             }
 
                             std::process::exit(70);
@@ -194,6 +197,9 @@ fn main() {
                                 }
                                 interpreter::Signal::Continue(line) => {
                                     eprintln!("[Line {}] Unexpected continue statement", line);
+                                }
+                                interpreter::Signal::Return(_) => {
+                                    eprintln!("Unexpected return statement");
                                 }
                             }
 

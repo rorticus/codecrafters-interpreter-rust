@@ -1,6 +1,7 @@
 use crate::lexer::Token;
 use crate::lexer::tokens::format_number;
 
+#[derive(Clone)]
 pub enum LiteralValue {
     Nil,
     Boolean(bool),
@@ -8,6 +9,7 @@ pub enum LiteralValue {
     String(String),
 }
 
+#[derive(Clone)]
 pub enum Expr {
     Literal(LiteralValue),
     Identifier(Token),

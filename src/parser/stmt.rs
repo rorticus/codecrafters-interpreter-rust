@@ -1,9 +1,15 @@
 use crate::{lexer::Token, parser::expr::Expr};
 
+#[derive(Clone)]
 pub enum Stmt {
     Expression(Expr),
     Print(Expr),
     Declaration(Token, Option<Expr>),
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Box<Stmt>,
+    },
     Block(Vec<Stmt>),
     If {
         condition: Expr,
@@ -22,4 +28,5 @@ pub enum Stmt {
     },
     Break(Token),
     Continue(Token),
+    Return(Option<Expr>),
 }

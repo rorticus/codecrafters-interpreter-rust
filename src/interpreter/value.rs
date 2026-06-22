@@ -1,5 +1,6 @@
 use crate::interpreter::Signal;
 use crate::parser::expr::LiteralValue;
+use crate::parser::stmt::Stmt;
 
 #[derive(Clone)]
 pub enum Value {
@@ -8,6 +9,7 @@ pub enum Value {
     Number(f64),
     String(String),
     NativeFunction(&'static str, fn(Vec<Value>) -> Result<Value, Signal>),
+    Function { params: Vec<String>, body: Stmt },
 }
 
 impl std::fmt::Display for Value {
@@ -18,6 +20,7 @@ impl std::fmt::Display for Value {
             Value::Number(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
             Value::NativeFunction(name, _) => write!(f, "<native fn {}>", name),
+            Value::Function { params, body } => write!(f, "function"),
         }
     }
 }
