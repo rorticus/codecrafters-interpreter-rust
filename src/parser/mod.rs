@@ -184,21 +184,27 @@ impl Parser {
             Some(TokenKind::While) => Ok(self.parse_while()?),
             Some(TokenKind::For) => self.parse_for(),
             Some(TokenKind::Break) => {
-                let t = self.advance().unwrap();
+                let t = self.advance().unwrap().clone();
+                self.expect(TokenKind::Semicolon)?;
                 Ok(Stmt::Break(t.clone()))
             }
             Some(TokenKind::Continue) => {
-                let t = self.advance().unwrap();
+                let t = self.advance().unwrap().clone();
+                self.expect(TokenKind::Semicolon)?;
                 Ok(Stmt::Continue(t.clone()))
             }
             Some(TokenKind::Return) => {
                 self.advance();
 
+                let mut return_value = None;
+
                 if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Semicolon)) {
-                    return Ok(Stmt::Return(Some(self.expression()?)));
+                    return_value = Some(self.expression()?);
                 }
 
-                Ok(Stmt::Return(None))
+                self.expect(TokenKind::Semicolon)?;
+
+                Ok(Stmt::Return(return_value))
             }
             _ => self.parse_expression_statement(),
         }

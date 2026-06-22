@@ -77,12 +77,15 @@ impl Interpreter {
             }
             Stmt::Block(statements) => {
                 self.environment.push();
+                let mut result = Ok(());
                 for stmt in statements {
-                    self.execute(stmt)?;
+                    result = self.execute(stmt);
+                    if result.is_err() {
+                        break;
+                    }
                 }
-                self.environment.pop();
-
-                Ok(())
+                self.environment.pop(); // always runs, even on Signal::Return
+                result
             }
             Stmt::If {
                 condition,
@@ -129,37 +132,48 @@ impl Interpreter {
             } => {
                 self.environment.push();
 
-                if let Some(init) = initializer {
-                    self.execute(init)?;
-                }
-
-                loop {
-                    if let Some(cond) = condition {
-                        let result = self.evaluate(cond)?;
-                        if !result.as_bool() {
-                            break;
+                let result = 'for_loop: {
+                    if let Some(init) = initializer {
+                        if let Err(e) = self.execute(init) {
+                            break 'for_loop Err(e);
                         }
                     }
 
-                    match self.execute(block) {
-                        Err(Signal::Break(_)) => {
-                            break;
+                    loop {
+                        if let Some(cond) = condition {
+                            match self.evaluate(cond) {
+                                Ok(v) if !v.as_bool() => break,
+                                Ok(_) => {}
+                                Err(e) => break 'for_loop Err(e),
+                            }
                         }
-                        Err(Signal::Continue(_)) => {
-                            continue;
+
+                        match self.execute(block) {
+                            Err(Signal::Break(_)) => break,
+                            Err(Signal::Continue(_)) => {
+                                if let Some(inc) = increment {
+                                    if let Err(e) = self.evaluate(inc) {
+                                        break 'for_loop Err(e);
+                                    }
+                                }
+                                continue;
+                            }
+                            Err(e) => break 'for_loop Err(e),
+                            Ok(_) => {}
                         }
-                        Err(e) => return Err(e),
-                        _ => {}
+
+                        if let Some(inc) = increment {
+                            if let Err(e) = self.evaluate(inc) {
+                                break 'for_loop Err(e);
+                            }
+                        }
                     }
 
-                    if let Some(inc) = increment {
-                        self.evaluate(inc)?;
-                    }
-                }
+                    Ok(())
+                };
 
                 self.environment.pop();
-
-                Ok(())
+                result
             }
             Stmt::Break(t) => Err(Signal::Break(t.line)),
             Stmt::Continue(t) => Err(Signal::Continue(t.line)),
