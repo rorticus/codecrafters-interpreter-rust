@@ -312,8 +312,37 @@ impl Parser {
                 right: Box::new(right),
             })
         } else {
-            self.primary()
+            self.call()
         }
+    }
+
+    fn call(&mut self) -> Result<Expr, ParseError> {
+        let mut expr = self.primary()?;
+
+        while matches!(self.peek().map(|k| &k.kind), Some(TokenKind::LeftParen)) {
+            self.advance();
+            let mut arguments = vec![];
+
+            if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightParen)) {
+                loop {
+                    arguments.push(self.expression()?);
+
+                    if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Comma)) {
+                        break;
+                    }
+                    self.advance();
+                }
+            }
+
+            self.expect(TokenKind::RightParen)?;
+
+            expr = Expr::Call {
+                expr: Box::new(expr),
+                arguments,
+            }
+        }
+
+        Ok(expr)
     }
 
     fn primary(&mut self) -> Result<Expr, ParseError> {

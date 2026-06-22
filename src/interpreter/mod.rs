@@ -1,6 +1,8 @@
 pub mod environment;
 pub mod value;
 
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use crate::{
     interpreter::{environment::Environment, value::Value},
     lexer::{Token, TokenKind},
@@ -33,9 +35,21 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        Interpreter {
-            environment: Environment::new(),
-        }
+        let mut environment = Environment::new();
+
+        environment.define(
+            "clock",
+            Value::NativeFunction("clock", |_| {
+                Ok(Value::Number(
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .unwrap()
+                        .as_secs_f64(),
+                ))
+            }),
+        );
+
+        Interpreter { environment }
     }
 
     pub fn execute(&mut self, stmt: &Stmt) -> Result<(), Signal> {
@@ -185,6 +199,7 @@ impl Interpreter {
                     Ok(v)
                 }
             }
+            Expr::Call { expr, arguments } => self.call_function(expr, arguments),
         }
     }
 
@@ -322,6 +337,22 @@ impl Interpreter {
                 "Unhandled binary operator {}",
                 operator.lexeme
             )))),
+        }
+    }
+
+    fn call_function(&mut self, identifier: &Expr, arguments: &Vec<Expr>) -> Result<Value, Signal> {
+        let value = self.evaluate(identifier)?;
+
+        match value {
+            Value::NativeFunction(_, fn_call) => {
+                let args: Result<Vec<Value>, Signal> =
+                    arguments.iter().map(|arg| self.evaluate(arg)).collect();
+                fn_call(args?)
+            }
+            _ => Err(Signal::Error(InterpreterError::RuntimeError(
+                format!("Trying to call non-function"),
+                0,
+            ))),
         }
     }
 }

@@ -30,6 +30,10 @@ pub enum Expr {
         operator: Token,
         right: Box<Expr>,
     },
+    Call {
+        expr: Box<Expr>,
+        arguments: Vec<Expr>,
+    },
 }
 
 impl Expr {
@@ -83,6 +87,15 @@ impl Expr {
                     right.pretty_print()
                 )
             }
+            Expr::Call { expr, arguments } => format!(
+                "{}({})",
+                expr.pretty_print(),
+                arguments
+                    .iter()
+                    .map(|a| a.pretty_print())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
         }
     }
 }
