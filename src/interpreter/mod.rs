@@ -12,6 +12,12 @@ pub enum InterpreterError {
     RuntimeError(String, usize),
 }
 
+pub enum Signal {
+    Break(usize),
+    Continue(usize),
+    Error(InterpreterError),
+}
+
 impl std::fmt::Display for InterpreterError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -32,7 +38,7 @@ impl Interpreter {
         }
     }
 
-    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), InterpreterError> {
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), Signal> {
         match stmt {
             Stmt::Expression(e) => {
                 self.evaluate(e)?;
@@ -83,7 +89,16 @@ impl Interpreter {
                     let value = self.evaluate(condition)?;
 
                     if value.as_bool() {
-                        self.execute(block)?;
+                        match self.execute(block) {
+                            Err(Signal::Break(_)) => {
+                                break;
+                            }
+                            Err(Signal::Continue(_)) => {
+                                continue;
+                            }
+                            Err(e) => return Err(e),
+                            _ => {}
+                        }
                     } else {
                         break;
                     }
@@ -111,7 +126,16 @@ impl Interpreter {
                         }
                     }
 
-                    self.execute(block)?;
+                    match self.execute(block) {
+                        Err(Signal::Break(_)) => {
+                            break;
+                        }
+                        Err(Signal::Continue(_)) => {
+                            continue;
+                        }
+                        Err(e) => return Err(e),
+                        _ => {}
+                    }
 
                     if let Some(inc) = increment {
                         self.evaluate(inc)?;
@@ -122,10 +146,12 @@ impl Interpreter {
 
                 Ok(())
             }
+            Stmt::Break(t) => Err(Signal::Break(t.line)),
+            Stmt::Continue(t) => Err(Signal::Continue(t.line)),
         }
     }
 
-    pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, InterpreterError> {
+    pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, Signal> {
         match expr {
             Expr::Literal(literal) => Ok(Value::from_literal(literal)),
             Expr::Grouping(expr) => self.evaluate(expr),
@@ -142,17 +168,17 @@ impl Interpreter {
             } => self.eval_logical(left, operator, right),
             Expr::Identifier(name) => match self.environment.get(&name.lexeme) {
                 Some(v) => Ok(v.clone()),
-                None => Err(InterpreterError::RuntimeError(
+                None => Err(Signal::Error(InterpreterError::RuntimeError(
                     format!("Undeclared variable {}", name.lexeme),
                     name.line,
-                )),
+                ))),
             },
             Expr::Assign { name, value } => {
                 if !self.environment.has(&name.lexeme) {
-                    return Err(InterpreterError::RuntimeError(
+                    return Err(Signal::Error(InterpreterError::RuntimeError(
                         format!("Undeclared identifier {}", name.lexeme),
                         name.line,
-                    ));
+                    )));
                 } else {
                     let v = self.evaluate(value)?;
                     self.environment.assign(&name.lexeme, v.clone());
@@ -162,22 +188,22 @@ impl Interpreter {
         }
     }
 
-    fn eval_unary(&mut self, operator: &Token, right: &Expr) -> Result<Value, InterpreterError> {
+    fn eval_unary(&mut self, operator: &Token, right: &Expr) -> Result<Value, Signal> {
         let value = self.evaluate(right)?;
 
         match operator.kind {
             TokenKind::Bang => Ok(Value::Boolean(!value.as_bool())),
             TokenKind::Minus => match value {
                 Value::Number(r) => Ok(Value::Number(-r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operand must be a number.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
-            _ => Err(InterpreterError::Internal(format!(
+            _ => Err(Signal::Error(InterpreterError::Internal(format!(
                 "Unhandled unary {}",
                 operator.lexeme
-            ))),
+            )))),
         }
     }
 
@@ -186,7 +212,7 @@ impl Interpreter {
         left: &Expr,
         operator: &Token,
         right: &Expr,
-    ) -> Result<Value, InterpreterError> {
+    ) -> Result<Value, Signal> {
         match operator.kind {
             TokenKind::Or => {
                 let left = self.evaluate(left)?;
@@ -206,10 +232,10 @@ impl Interpreter {
                     self.evaluate(right)
                 }
             }
-            _ => Err(InterpreterError::Internal(format!(
+            _ => Err(Signal::Error(InterpreterError::Internal(format!(
                 "Unhandled logical operator {}",
                 operator.lexeme
-            ))),
+            )))),
         }
     }
 
@@ -218,60 +244,60 @@ impl Interpreter {
         left: &Expr,
         operator: &Token,
         right: &Expr,
-    ) -> Result<Value, InterpreterError> {
+    ) -> Result<Value, Signal> {
         let left = self.evaluate(left)?;
         let right = self.evaluate(right)?;
 
         match operator.kind {
             TokenKind::Star => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l * r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be numbers.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
             TokenKind::Slash => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l / r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be numbers.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
             TokenKind::Plus => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l + r)),
                 (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be two numbers or two strings.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
             TokenKind::Less => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l < r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be numbers.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
             TokenKind::LessEqual => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l <= r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be numbers.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
             TokenKind::Greater => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l > r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be numbers.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
             TokenKind::GreaterEqual => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l >= r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be numbers.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
             TokenKind::EqualEqual => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Boolean(l == r)),
@@ -287,15 +313,15 @@ impl Interpreter {
             },
             TokenKind::Minus => match (left, right) {
                 (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l - r)),
-                _ => Err(InterpreterError::RuntimeError(
+                _ => Err(Signal::Error(InterpreterError::RuntimeError(
                     "Operands must be numbers.".to_string(),
                     operator.line,
-                )),
+                ))),
             },
-            _ => Err(InterpreterError::Internal(format!(
+            _ => Err(Signal::Error(InterpreterError::Internal(format!(
                 "Unhandled binary operator {}",
                 operator.lexeme
-            ))),
+            )))),
         }
     }
 }

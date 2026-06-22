@@ -141,6 +141,14 @@ impl Parser {
             Some(TokenKind::If) => Ok(self.parse_if()?),
             Some(TokenKind::While) => Ok(self.parse_while()?),
             Some(TokenKind::For) => self.parse_for(),
+            Some(TokenKind::Break) => {
+                let t = self.advance().unwrap();
+                Ok(Stmt::Break(t.clone()))
+            }
+            Some(TokenKind::Continue) => {
+                let t = self.advance().unwrap();
+                Ok(Stmt::Continue(t.clone()))
+            }
             _ => self.parse_expression_statement(),
         }
     }

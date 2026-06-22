@@ -125,7 +125,18 @@ fn main() {
                             println!("{}", value);
                         }
                         Err(e) => {
-                            eprintln!("{e}");
+                            match e {
+                                interpreter::Signal::Error(e) => {
+                                    eprintln!("{e}");
+                                }
+                                interpreter::Signal::Break(line) => {
+                                    eprintln!("[Line {}] Unexpected break statement", line);
+                                }
+                                interpreter::Signal::Continue(line) => {
+                                    eprintln!("[Line {}] Unexpected continue statement", line);
+                                }
+                            }
+
                             std::process::exit(70);
                         }
                     }
@@ -174,7 +185,18 @@ fn main() {
                     Ok(result) => match interpretter.execute(&result) {
                         Ok(_) => {}
                         Err(e) => {
-                            eprintln!("{e}");
+                            match e {
+                                interpreter::Signal::Error(e) => {
+                                    eprintln!("{e}");
+                                }
+                                interpreter::Signal::Break(line) => {
+                                    eprintln!("[Line {}] Unexpected break statement", line);
+                                }
+                                interpreter::Signal::Continue(line) => {
+                                    eprintln!("[Line {}] Unexpected continue statement", line);
+                                }
+                            }
+
                             std::process::exit(70);
                         }
                     },

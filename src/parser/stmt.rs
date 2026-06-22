@@ -20,4 +20,6 @@ pub enum Stmt {
         increment: Option<Expr>,
         block: Box<Stmt>,
     },
+    Break(Token),
+    Continue(Token),
 }

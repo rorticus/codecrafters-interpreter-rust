@@ -72,6 +72,8 @@ impl Lexer {
             "true" => Some(tokens::TokenKind::True),
             "var" => Some(tokens::TokenKind::Var),
             "while" => Some(tokens::TokenKind::While),
+            "break" => Some(tokens::TokenKind::Break),
+            "continue" => Some(tokens::TokenKind::Continue),
             _ => None,
         }
     }

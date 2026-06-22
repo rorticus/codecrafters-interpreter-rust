@@ -40,6 +40,8 @@ pub enum TokenKind {
     True,
     Var,
     While,
+    Break,
+    Continue,
 }
 
 #[derive(Clone)]
@@ -108,6 +110,8 @@ impl fmt::Display for TokenKind {
             TokenKind::True => "TRUE",
             TokenKind::Var => "VAR",
             TokenKind::While => "WHILE",
+            TokenKind::Break => "BREAK",
+            TokenKind::Continue => "CONTINUE",
         };
 
         write!(f, "{name}")
