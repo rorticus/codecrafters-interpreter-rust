@@ -174,6 +174,7 @@ impl Interpreter {
                 self.environment.define(
                     &name.lexeme,
                     Value::Function {
+                        name: name.lexeme.clone(),
                         params: params.iter().map(|p| p.lexeme.clone()).collect(),
                         body: *body.clone(),
                     },
@@ -368,7 +369,7 @@ impl Interpreter {
                     arguments.iter().map(|arg| self.evaluate(arg)).collect();
                 fn_call(args?)
             }
-            Value::Function { params, body } => {
+            Value::Function { name, params, body } => {
                 self.environment.push();
 
                 if arguments.len() != params.len() {
