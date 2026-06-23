@@ -1,29 +1,34 @@
 use crate::interpreter::Value;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
+type Scope = Rc<RefCell<HashMap<String, Value>>>;
+
+#[derive(Clone)]
 pub struct Environment {
-    scopes: Vec<HashMap<String, Value>>,
+    scopes: Vec<Scope>,
 }
 
 impl Environment {
     pub fn new() -> Self {
         Environment {
-            scopes: vec![HashMap::new()],
+            scopes: vec![Rc::new(RefCell::new(HashMap::new()))],
         }
     }
 
     pub fn push(&mut self) {
-        self.scopes.push(HashMap::new());
+        self.scopes.push(Rc::new(RefCell::new(HashMap::new())));
     }
 
     pub fn pop(&mut self) {
         self.scopes.pop();
     }
 
-    pub fn get(&self, name: &str) -> Option<&Value> {
+    pub fn get(&self, name: &str) -> Option<Value> {
         for scope in self.scopes.iter().rev() {
-            if let Some(v) = scope.get(name) {
-                return Some(v);
+            if let Some(v) = scope.borrow().get(name) {
+                return Some(v.clone());
             }
         }
         None
@@ -31,9 +36,9 @@ impl Environment {
 
     pub fn assign(&mut self, name: &str, value: Value) -> bool {
         // walk scopes inward→outward to find where the variable was declared
-        for scope in self.scopes.iter_mut().rev() {
-            if scope.contains_key(name) {
-                scope.insert(name.to_string(), value);
+        for scope in self.scopes.iter().rev() {
+            if scope.borrow().contains_key(name) {
+                scope.borrow_mut().insert(name.to_string(), value);
                 return true;
             }
         }
@@ -46,8 +51,9 @@ impl Environment {
 
     pub fn define(&mut self, name: &str, value: Value) {
         self.scopes
-            .last_mut()
+            .last()
             .unwrap()
+            .borrow_mut()
             .insert(name.to_string(), value);
     }
 }

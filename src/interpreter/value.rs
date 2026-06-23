@@ -1,4 +1,5 @@
 use crate::interpreter::Signal;
+use crate::interpreter::environment::Environment;
 use crate::parser::expr::LiteralValue;
 use crate::parser::stmt::Stmt;
 
@@ -13,6 +14,7 @@ pub enum Value {
         name: String,
         params: Vec<String>,
         body: Stmt,
+        closure: Environment,
     },
 }
 
@@ -24,7 +26,12 @@ impl std::fmt::Display for Value {
             Value::Number(n) => write!(f, "{}", n),
             Value::String(s) => write!(f, "{}", s),
             Value::NativeFunction(name, _) => write!(f, "<native fn {}>", name),
-            Value::Function { name, params, body } => write!(f, "<fn {}>", name),
+            Value::Function {
+                name,
+                params,
+                body,
+                closure,
+            } => write!(f, "<fn {}>", name),
         }
     }
 }

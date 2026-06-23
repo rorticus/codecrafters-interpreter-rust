@@ -191,6 +191,7 @@ impl Interpreter {
                         name: name.lexeme.clone(),
                         params: params.iter().map(|p| p.lexeme.clone()).collect(),
                         body: *body.clone(),
+                        closure: self.environment.clone(),
                     },
                 );
 
@@ -215,7 +216,7 @@ impl Interpreter {
                 right,
             } => self.eval_logical(left, operator, right),
             Expr::Identifier(name) => match self.environment.get(&name.lexeme) {
-                Some(v) => Ok(v.clone()),
+                Some(v) => Ok(v),
                 None => Err(Signal::Error(InterpreterError::RuntimeError(
                     format!("Undeclared variable {}", name.lexeme),
                     name.line,
@@ -383,24 +384,40 @@ impl Interpreter {
                     arguments.iter().map(|arg| self.evaluate(arg)).collect();
                 fn_call(args?)
             }
-            Value::Function { name, params, body } => {
-                self.environment.push();
+            Value::Function {
+                name,
+                params,
+                body,
+                closure,
+            } => {
+                let mut arg_vals = vec![];
 
-                if arguments.len() != params.len() {
+                for arg in arguments {
+                    arg_vals.push(self.evaluate(arg)?);
+                }
+
+                if arg_vals.len() != params.len() {
                     return Err(Signal::Error(InterpreterError::RuntimeError(
-                        format!("Incorrect number of arguments to function"),
+                        format!(
+                            "Expected {} arguments but got {}.",
+                            params.len(),
+                            arg_vals.len()
+                        ),
                         0,
                     )));
                 }
 
-                for i in 0..arguments.len() {
-                    let arg_val = self.evaluate(&arguments[i])?;
-                    self.environment.define(params[i].as_str(), arg_val);
+                let saved_env = std::mem::replace(&mut self.environment, closure);
+                self.environment.push();
+
+                for (param, val) in params.iter().zip(arg_vals) {
+                    self.environment.define(param, val);
                 }
 
                 let result = self.execute(&body);
 
                 self.environment.pop();
+                self.environment = saved_env;
 
                 match result {
                     Ok(_) => Ok(Value::Nil),
