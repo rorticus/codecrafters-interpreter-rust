@@ -13,6 +13,7 @@ pub enum LiteralValue {
 pub struct Expr {
     pub id: usize,
     pub kind: ExprKind,
+    pub line: usize,
 }
 
 #[derive(Clone)]

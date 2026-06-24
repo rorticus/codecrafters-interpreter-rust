@@ -51,10 +51,10 @@ impl Parser {
         }
     }
 
-    fn make_expr(&mut self, kind: ExprKind) -> Expr {
+    fn make_expr(&mut self, kind: ExprKind, line: usize) -> Expr {
         let id = self.next_id;
         self.next_id += 1;
-        Expr { id, kind }
+        Expr { id, kind, line }
     }
 
     fn peek(&self) -> Option<&Token> {
@@ -238,16 +238,19 @@ impl Parser {
         let expr = self.or()?;
 
         if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Equal)) {
-            self.advance();
+            let line = self.advance().unwrap().line;
 
             let value = self.assignment()?;
 
             match &expr.kind {
                 ExprKind::Identifier(name) => {
-                    return Ok(self.make_expr(ExprKind::Assign {
-                        name: name.clone(),
-                        value: Box::new(value),
-                    }));
+                    return Ok(self.make_expr(
+                        ExprKind::Assign {
+                            name: name.clone(),
+                            value: Box::new(value),
+                        },
+                        line,
+                    ));
                 }
                 _ => return Err(ParseError::InvalidAssignmentTarget),
             }
@@ -260,12 +263,16 @@ impl Parser {
         let mut left = self.and()?;
         while matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Or)) {
             let operator = self.advance().unwrap().clone();
+            let line = operator.line;
             let right = self.and()?;
-            left = self.make_expr(ExprKind::Logical {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            });
+            left = self.make_expr(
+                ExprKind::Logical {
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                },
+                line,
+            );
         }
         Ok(left)
     }
@@ -274,12 +281,16 @@ impl Parser {
         let mut left = self.equality()?;
         while matches!(self.peek().map(|t| &t.kind), Some(TokenKind::And)) {
             let operator = self.advance().unwrap().clone();
+            let line = operator.line;
             let right = self.equality()?;
-            left = self.make_expr(ExprKind::Logical {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            });
+            left = self.make_expr(
+                ExprKind::Logical {
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                },
+                line,
+            );
         }
         Ok(left)
     }
@@ -292,14 +303,18 @@ impl Parser {
             Some(TokenKind::EqualEqual) | Some(TokenKind::BangEqual)
         ) {
             let operator = self.advance().unwrap().clone();
+            let line = operator.line;
 
             let right = self.comparison()?;
 
-            left = self.make_expr(ExprKind::Binary {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            })
+            left = self.make_expr(
+                ExprKind::Binary {
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                },
+                line,
+            )
         }
 
         Ok(left)
@@ -316,14 +331,18 @@ impl Parser {
                 | Some(TokenKind::GreaterEqual)
         ) {
             let operator = self.advance().unwrap().clone();
+            let line = operator.line;
 
             let right = self.addition()?;
 
-            left = self.make_expr(ExprKind::Binary {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            })
+            left = self.make_expr(
+                ExprKind::Binary {
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                },
+                line,
+            )
         }
 
         Ok(left)
@@ -337,14 +356,18 @@ impl Parser {
             Some(TokenKind::Plus) | Some(TokenKind::Minus)
         ) {
             let operator = self.advance().unwrap().clone();
+            let line = operator.line;
 
             let right = self.multiplication()?;
 
-            left = self.make_expr(ExprKind::Binary {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            })
+            left = self.make_expr(
+                ExprKind::Binary {
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                },
+                line,
+            )
         }
 
         Ok(left)
@@ -358,14 +381,18 @@ impl Parser {
             Some(TokenKind::Star) | Some(TokenKind::Slash)
         ) {
             let operator = self.advance().unwrap().clone();
+            let line = operator.line;
 
             let right = self.unary()?;
 
-            left = self.make_expr(ExprKind::Binary {
-                left: Box::new(left),
-                operator,
-                right: Box::new(right),
-            });
+            left = self.make_expr(
+                ExprKind::Binary {
+                    left: Box::new(left),
+                    operator,
+                    right: Box::new(right),
+                },
+                line,
+            );
         }
 
         Ok(left)
@@ -377,11 +404,15 @@ impl Parser {
             Some(TokenKind::Bang) | Some(TokenKind::Minus)
         ) {
             let operator = self.advance().unwrap().clone();
+            let line = operator.line;
             let right = self.unary()?;
-            Ok(self.make_expr(ExprKind::Unary {
-                operator,
-                right: Box::new(right),
-            }))
+            Ok(self.make_expr(
+                ExprKind::Unary {
+                    operator,
+                    right: Box::new(right),
+                },
+                line,
+            ))
         } else {
             self.call()
         }
@@ -391,7 +422,7 @@ impl Parser {
         let mut expr = self.primary()?;
 
         while matches!(self.peek().map(|k| &k.kind), Some(TokenKind::LeftParen)) {
-            self.advance();
+            let line = self.advance().unwrap().line;
             let mut arguments = vec![];
 
             if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightParen)) {
@@ -407,44 +438,56 @@ impl Parser {
 
             self.expect(TokenKind::RightParen)?;
 
-            expr = self.make_expr(ExprKind::Call {
-                expr: Box::new(expr),
-                arguments,
-            })
+            expr = self.make_expr(
+                ExprKind::Call {
+                    expr: Box::new(expr),
+                    arguments,
+                },
+                line,
+            )
         }
 
         Ok(expr)
     }
 
     fn primary(&mut self) -> Result<Expr, ParseError> {
+        let line = self.peek().map(|t| t.line).unwrap_or(0);
+
         match self.advance() {
             Some(t) => {
                 match &t.kind {
                     TokenKind::True => {
-                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Boolean(true))))
+                        Ok(self
+                            .make_expr(ExprKind::Literal(expr::LiteralValue::Boolean(true)), line))
                     }
                     TokenKind::False => {
-                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Boolean(false))))
+                        Ok(self
+                            .make_expr(ExprKind::Literal(expr::LiteralValue::Boolean(false)), line))
                     }
                     TokenKind::Nil => {
-                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Nil)))
+                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Nil), line))
                     }
                     TokenKind::Number(v) => {
                         let n = v.clone();
-                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Number(n))))
+                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Number(n)), line))
                     }
                     TokenKind::String(v) => {
                         let str = v.clone();
-                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::String(str))))
+                        Ok(
+                            self.make_expr(
+                                ExprKind::Literal(expr::LiteralValue::String(str)),
+                                line,
+                            ),
+                        )
                     }
                     TokenKind::LeftParen => {
                         let inner = self.expression()?; // recurse all the way back up
                         self.expect(TokenKind::RightParen)?; // consume the closing ')'
-                        Ok(self.make_expr(ExprKind::Grouping(Box::new(inner))))
+                        Ok(self.make_expr(ExprKind::Grouping(Box::new(inner)), line))
                     }
                     TokenKind::Identifier(_) => {
                         let token = t.clone();
-                        Ok(self.make_expr(ExprKind::Identifier(token)))
+                        Ok(self.make_expr(ExprKind::Identifier(token), line))
                     }
                     _ => Err(ParseError::ExpectedExpr(t.clone())),
                 }
