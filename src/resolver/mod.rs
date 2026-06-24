@@ -1,18 +1,24 @@
 use crate::lexer::Token;
 use crate::parser::expr::{Expr, ExprKind};
 use crate::parser::stmt::Stmt;
-use crate::resolver::ResolveError::SelfReference;
+use crate::resolver::ResolveError::{AlreadyDefined, SelfReference};
 use std::collections::HashMap;
 use std::fmt::Display;
 
 pub enum ResolveError {
     SelfReference(usize),
+    AlreadyDefined(usize, String),
 }
 
 impl Display for ResolveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             SelfReference(line) => write!(f, "[Line {}] variable references itself", line),
+            AlreadyDefined(line, name) => write!(
+                f,
+                "[line {}] Error at '{}': Already a variable with this name in this scope.",
+                line, name
+            ),
         }
     }
 }
@@ -38,10 +44,15 @@ impl Resolver {
         self.scopes.pop();
     }
 
-    fn declare(&mut self, name: &str) {
+    fn declare(&mut self, name: &str, line: usize) -> Result<(), ResolveError> {
         if let Some(scope) = self.scopes.last_mut() {
+            if scope.contains_key(name) {
+                return Err(ResolveError::AlreadyDefined(line, name.to_string()));
+            }
             scope.insert(name.to_string(), false);
         }
+
+        Ok(())
     }
 
     fn define(&mut self, name: &str) {
@@ -69,14 +80,14 @@ impl Resolver {
                 self.end_scope();
             }
             Stmt::Declaration(name_token, initializer) => {
-                self.declare(&name_token.lexeme);
+                self.declare(&name_token.lexeme, name_token.line)?;
                 if let Some(init) = initializer {
                     self.resolve_expr(init)?;
                 }
                 self.define(&name_token.lexeme);
             }
             Stmt::Function { name, params, body } => {
-                self.declare(&name.lexeme);
+                self.declare(&name.lexeme, name.line)?;
                 self.define(&name.lexeme);
                 self.resolve_function(params, body)?;
             }
@@ -140,7 +151,7 @@ impl Resolver {
         self.begin_scope();
 
         for param in params {
-            self.declare(&param.lexeme);
+            self.declare(&param.lexeme, param.line)?;
             self.define(&param.lexeme);
         }
 
