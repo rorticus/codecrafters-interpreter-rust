@@ -10,7 +10,13 @@ pub enum LiteralValue {
 }
 
 #[derive(Clone)]
-pub enum Expr {
+pub struct Expr {
+    pub id: usize,
+    pub kind: ExprKind,
+}
+
+#[derive(Clone)]
+pub enum ExprKind {
     Literal(LiteralValue),
     Identifier(Token),
     Assign {
@@ -40,8 +46,8 @@ pub enum Expr {
 
 impl Expr {
     pub fn pretty_print(&self) -> String {
-        match self {
-            Expr::Literal(value) => match value {
+        match &self.kind {
+            ExprKind::Literal(value) => match value {
                 LiteralValue::Nil => "nil".to_string(),
                 LiteralValue::Boolean(b) => {
                     if *b {
@@ -53,19 +59,19 @@ impl Expr {
                 LiteralValue::Number(v) => format_number(*v),
                 LiteralValue::String(v) => v.clone(),
             },
-            Expr::Grouping(e) => {
+            ExprKind::Grouping(e) => {
                 format!("(group {})", e.pretty_print())
             }
-            Expr::Unary { operator, right } => {
+            ExprKind::Unary { operator, right } => {
                 format!("({} {})", operator.lexeme, right.pretty_print())
             }
-            Expr::Identifier(t) => {
+            ExprKind::Identifier(t) => {
                 format!("{}", t.lexeme)
             }
-            Expr::Assign { name, value } => {
+            ExprKind::Assign { name, value } => {
                 format!("{} = {}", name, value.pretty_print())
             }
-            Expr::Logical {
+            ExprKind::Logical {
                 left,
                 operator,
                 right,
@@ -77,7 +83,7 @@ impl Expr {
                     right.pretty_print()
                 )
             }
-            Expr::Binary {
+            ExprKind::Binary {
                 left,
                 operator,
                 right,
@@ -89,7 +95,7 @@ impl Expr {
                     right.pretty_print()
                 )
             }
-            Expr::Call { expr, arguments } => format!(
+            ExprKind::Call { expr, arguments } => format!(
                 "{}({})",
                 expr.pretty_print(),
                 arguments

@@ -6,7 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{
     interpreter::{environment::Environment, value::Value},
     lexer::{Token, TokenKind},
-    parser::{expr::Expr, stmt::Stmt},
+    parser::{expr::Expr, expr::ExprKind, stmt::Stmt},
 };
 
 pub enum InterpreterError {
@@ -201,28 +201,28 @@ impl Interpreter {
     }
 
     pub fn evaluate(&mut self, expr: &Expr) -> Result<Value, Signal> {
-        match expr {
-            Expr::Literal(literal) => Ok(Value::from_literal(literal)),
-            Expr::Grouping(expr) => self.evaluate(expr),
-            Expr::Unary { operator, right } => self.eval_unary(operator, right),
-            Expr::Binary {
+        match &expr.kind {
+            ExprKind::Literal(literal) => Ok(Value::from_literal(literal)),
+            ExprKind::Grouping(expr) => self.evaluate(expr),
+            ExprKind::Unary { operator, right } => self.eval_unary(operator, right),
+            ExprKind::Binary {
                 left,
                 operator,
                 right,
             } => self.eval_binary(left, operator, right),
-            Expr::Logical {
+            ExprKind::Logical {
                 left,
                 operator,
                 right,
             } => self.eval_logical(left, operator, right),
-            Expr::Identifier(name) => match self.environment.get(&name.lexeme) {
+            ExprKind::Identifier(name) => match self.environment.get(&name.lexeme) {
                 Some(v) => Ok(v),
                 None => Err(Signal::Error(InterpreterError::RuntimeError(
                     format!("Undeclared variable {}", name.lexeme),
                     name.line,
                 ))),
             },
-            Expr::Assign { name, value } => {
+            ExprKind::Assign { name, value } => {
                 if !self.environment.has(&name.lexeme) {
                     return Err(Signal::Error(InterpreterError::RuntimeError(
                         format!("Undeclared identifier {}", name.lexeme),
@@ -234,7 +234,7 @@ impl Interpreter {
                     Ok(v)
                 }
             }
-            Expr::Call { expr, arguments } => self.call_function(expr, arguments),
+            ExprKind::Call { expr, arguments } => self.call_function(expr, arguments),
         }
     }
 

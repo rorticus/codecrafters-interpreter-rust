@@ -3,7 +3,10 @@ pub mod stmt;
 
 use crate::{
     lexer::{Token, TokenKind},
-    parser::{expr::Expr, stmt::Stmt},
+    parser::{
+        expr::{Expr, ExprKind},
+        stmt::Stmt,
+    },
 };
 use std::fmt::Display;
 
@@ -36,11 +39,22 @@ impl Display for ParseError {
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
+    next_id: usize,
 }
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, pos: 0 }
+        Parser {
+            tokens,
+            pos: 0,
+            next_id: 0,
+        }
+    }
+
+    fn make_expr(&mut self, kind: ExprKind) -> Expr {
+        let id = self.next_id;
+        self.next_id += 1;
+        Expr { id, kind }
     }
 
     fn peek(&self) -> Option<&Token> {
@@ -228,12 +242,12 @@ impl Parser {
 
             let value = self.assignment()?;
 
-            match expr {
-                Expr::Identifier(name) => {
-                    return Ok(Expr::Assign {
-                        name,
+            match &expr.kind {
+                ExprKind::Identifier(name) => {
+                    return Ok(self.make_expr(ExprKind::Assign {
+                        name: name.clone(),
                         value: Box::new(value),
-                    });
+                    }));
                 }
                 _ => return Err(ParseError::InvalidAssignmentTarget),
             }
@@ -247,11 +261,11 @@ impl Parser {
         while matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Or)) {
             let operator = self.advance().unwrap().clone();
             let right = self.and()?;
-            left = Expr::Logical {
+            left = self.make_expr(ExprKind::Logical {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
-            };
+            });
         }
         Ok(left)
     }
@@ -261,11 +275,11 @@ impl Parser {
         while matches!(self.peek().map(|t| &t.kind), Some(TokenKind::And)) {
             let operator = self.advance().unwrap().clone();
             let right = self.equality()?;
-            left = Expr::Logical {
+            left = self.make_expr(ExprKind::Logical {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
-            };
+            });
         }
         Ok(left)
     }
@@ -281,11 +295,11 @@ impl Parser {
 
             let right = self.comparison()?;
 
-            left = Expr::Binary {
+            left = self.make_expr(ExprKind::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
-            }
+            })
         }
 
         Ok(left)
@@ -305,11 +319,11 @@ impl Parser {
 
             let right = self.addition()?;
 
-            left = Expr::Binary {
+            left = self.make_expr(ExprKind::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
-            }
+            })
         }
 
         Ok(left)
@@ -326,11 +340,11 @@ impl Parser {
 
             let right = self.multiplication()?;
 
-            left = Expr::Binary {
+            left = self.make_expr(ExprKind::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
-            }
+            })
         }
 
         Ok(left)
@@ -347,11 +361,11 @@ impl Parser {
 
             let right = self.unary()?;
 
-            left = Expr::Binary {
+            left = self.make_expr(ExprKind::Binary {
                 left: Box::new(left),
                 operator,
                 right: Box::new(right),
-            };
+            });
         }
 
         Ok(left)
@@ -364,10 +378,10 @@ impl Parser {
         ) {
             let operator = self.advance().unwrap().clone();
             let right = self.unary()?;
-            Ok(Expr::Unary {
+            Ok(self.make_expr(ExprKind::Unary {
                 operator,
                 right: Box::new(right),
-            })
+            }))
         } else {
             self.call()
         }
@@ -393,10 +407,10 @@ impl Parser {
 
             self.expect(TokenKind::RightParen)?;
 
-            expr = Expr::Call {
+            expr = self.make_expr(ExprKind::Call {
                 expr: Box::new(expr),
                 arguments,
-            }
+            })
         }
 
         Ok(expr)
@@ -406,19 +420,32 @@ impl Parser {
         match self.advance() {
             Some(t) => {
                 match &t.kind {
-                    TokenKind::True => Ok(Expr::Literal(expr::LiteralValue::Boolean(true))),
-                    TokenKind::False => Ok(Expr::Literal(expr::LiteralValue::Boolean(false))),
-                    TokenKind::Nil => Ok(Expr::Literal(expr::LiteralValue::Nil)),
-                    TokenKind::Number(v) => Ok(Expr::Literal(expr::LiteralValue::Number(*v))),
+                    TokenKind::True => {
+                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Boolean(true))))
+                    }
+                    TokenKind::False => {
+                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Boolean(false))))
+                    }
+                    TokenKind::Nil => {
+                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Nil)))
+                    }
+                    TokenKind::Number(v) => {
+                        let n = v.clone();
+                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::Number(n))))
+                    }
                     TokenKind::String(v) => {
-                        Ok(Expr::Literal(expr::LiteralValue::String(v.clone())))
+                        let str = v.clone();
+                        Ok(self.make_expr(ExprKind::Literal(expr::LiteralValue::String(str))))
                     }
                     TokenKind::LeftParen => {
                         let inner = self.expression()?; // recurse all the way back up
                         self.expect(TokenKind::RightParen)?; // consume the closing ')'
-                        Ok(Expr::Grouping(Box::new(inner)))
+                        Ok(self.make_expr(ExprKind::Grouping(Box::new(inner))))
                     }
-                    TokenKind::Identifier(_) => Ok(Expr::Identifier(t.clone())),
+                    TokenKind::Identifier(_) => {
+                        let token = t.clone();
+                        Ok(self.make_expr(ExprKind::Identifier(token)))
+                    }
                     _ => Err(ParseError::ExpectedExpr(t.clone())),
                 }
             }
