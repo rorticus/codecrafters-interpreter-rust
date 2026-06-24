@@ -1,14 +1,17 @@
 #![allow(unused_variables)]
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 
 use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
 use crate::parser::Parser;
+use crate::resolver::Resolver;
 
 mod interpreter;
 mod lexer;
 mod parser;
+mod resolver;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -119,7 +122,7 @@ fn main() {
 
             match parser.parse_expression() {
                 Ok(result) => {
-                    let mut interpretter = Interpreter::new();
+                    let mut interpretter = Interpreter::new(HashMap::new());
                     match interpretter.evaluate(&result) {
                         Ok(value) => {
                             println!("{}", value);
@@ -181,7 +184,18 @@ fn main() {
 
             let statements = parser.parse();
 
-            let mut interpretter = Interpreter::new();
+            let mut resolver = Resolver::new();
+
+            for statement in &statements {
+                if let Ok(stmt) = statement {
+                    if let Err(e) = resolver.resolve_stmt(&stmt) {
+                        eprintln!("{}", e);
+                        std::process::exit(65);
+                    }
+                }
+            }
+
+            let mut interpretter = Interpreter::new(resolver.depths);
 
             for statement in statements {
                 match statement {

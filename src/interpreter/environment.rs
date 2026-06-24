@@ -25,28 +25,33 @@ impl Environment {
         self.scopes.pop();
     }
 
-    pub fn get(&self, name: &str) -> Option<Value> {
-        for scope in self.scopes.iter().rev() {
-            if let Some(v) = scope.borrow().get(name) {
-                return Some(v.clone());
-            }
-        }
-        None
+    pub fn get_at(&self, depth: usize, name: &str) -> Option<Value> {
+        let idx = self.scopes.len() - 1 - depth;
+        self.scopes.get(idx)?.borrow().get(name).cloned()
     }
 
-    pub fn assign(&mut self, name: &str, value: Value) -> bool {
-        // walk scopes inward→outward to find where the variable was declared
-        for scope in self.scopes.iter().rev() {
-            if scope.borrow().contains_key(name) {
-                scope.borrow_mut().insert(name.to_string(), value);
-                return true;
-            }
+    pub fn assign_at(&mut self, depth: usize, name: &str, value: Value) -> bool {
+        let idx = self.scopes.len() - 1 - depth;
+
+        if let Some(scope) = self.scopes.get(idx) {
+            scope.borrow_mut().insert(name.to_string(), value);
+            true
+        } else {
+            false
         }
-        false
     }
 
-    pub fn has(&self, name: &str) -> bool {
-        self.get(name).is_some()
+    pub fn get_global(&self, name: &str) -> Option<Value> {
+        self.scopes[0].borrow().get(name).cloned()
+    }
+
+    pub fn assign_global(&mut self, name: &str, value: Value) -> bool {
+        if self.scopes[0].borrow().contains_key(name) {
+            self.scopes[0].borrow_mut().insert(name.to_string(), value);
+            true
+        } else {
+            false
+        }
     }
 
     pub fn define(&mut self, name: &str, value: Value) {

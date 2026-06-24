@@ -1,7 +1,10 @@
 pub mod environment;
 pub mod value;
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashMap,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use crate::{
     interpreter::{environment::Environment, value::Value},
@@ -32,10 +35,11 @@ impl std::fmt::Display for InterpreterError {
 
 pub struct Interpreter {
     environment: Environment,
+    depths: HashMap<usize, usize>,
 }
 
 impl Interpreter {
-    pub fn new() -> Self {
+    pub fn new(depths: HashMap<usize, usize>) -> Self {
         let mut environment = Environment::new();
 
         environment.define(
@@ -50,7 +54,10 @@ impl Interpreter {
             }),
         );
 
-        Interpreter { environment }
+        Interpreter {
+            environment,
+            depths,
+        }
     }
 
     pub fn execute(&mut self, stmt: &Stmt) -> Result<(), Signal> {
@@ -215,24 +222,38 @@ impl Interpreter {
                 operator,
                 right,
             } => self.eval_logical(left, operator, right),
-            ExprKind::Identifier(name) => match self.environment.get(&name.lexeme) {
-                Some(v) => Ok(v),
-                None => Err(Signal::Error(InterpreterError::RuntimeError(
-                    format!("Undeclared variable {}", name.lexeme),
-                    name.line,
-                ))),
-            },
-            ExprKind::Assign { name, value } => {
-                if !self.environment.has(&name.lexeme) {
-                    return Err(Signal::Error(InterpreterError::RuntimeError(
-                        format!("Undeclared identifier {}", name.lexeme),
-                        name.line,
-                    )));
+            ExprKind::Identifier(name) => {
+                if let Some(&depth) = self.depths.get(&expr.id) {
+                    self.environment.get_at(depth, &name.lexeme).ok_or_else(|| {
+                        Signal::Error(InterpreterError::RuntimeError(
+                            format!("Undefined variable {}", name.lexeme),
+                            name.line,
+                        ))
+                    })
                 } else {
-                    let v = self.evaluate(value)?;
-                    self.environment.assign(&name.lexeme, v.clone());
-                    Ok(v)
+                    self.environment.get_global(&name.lexeme).ok_or_else(|| {
+                        Signal::Error(InterpreterError::RuntimeError(
+                            format!("Undeclared variable {}", name.lexeme),
+                            name.line,
+                        ))
+                    })
                 }
+            }
+            ExprKind::Assign { name, value } => {
+                let v = self.evaluate(value)?;
+
+                if let Some(&depth) = self.depths.get(&expr.id) {
+                    if !self.environment.assign_at(depth, &name.lexeme, v.clone()) {
+                        return Err(Signal::Error(InterpreterError::RuntimeError(
+                            format!("Undeclared identifier {}", name.lexeme),
+                            name.line,
+                        )));
+                    }
+                } else {
+                    self.environment.assign_global(&name.lexeme, v.clone());
+                }
+
+                Ok(v)
             }
             ExprKind::Call { expr, arguments } => self.call_function(expr, arguments),
         }
