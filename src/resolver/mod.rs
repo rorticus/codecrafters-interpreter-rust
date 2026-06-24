@@ -155,7 +155,11 @@ impl Resolver {
             self.define(&param.lexeme);
         }
 
-        self.resolve_stmt(body)?;
+        if let Stmt::Block(stmts) = body {
+            for stmt in stmts {
+                self.resolve_stmt(stmt)?;
+            }
+        }
 
         self.end_scope();
 
