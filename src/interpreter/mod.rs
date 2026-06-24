@@ -435,7 +435,18 @@ impl Interpreter {
                     self.environment.define(param, val);
                 }
 
-                let result = self.execute(&body);
+                let result = if let Stmt::Block(stmts) = body {
+                    let mut result = Ok(());
+                    for stmt in stmts {
+                        result = self.execute(&stmt);
+                        if result.is_err() {
+                            break;
+                        }
+                    }
+                    result
+                } else {
+                    self.execute(&body)
+                };
 
                 self.environment.pop();
                 self.environment = saved_env;
