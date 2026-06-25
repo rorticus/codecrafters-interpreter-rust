@@ -227,6 +227,13 @@ impl Resolver {
                 self.resolve_expr(expr)?;
             }
             ExprKind::Literal(_) => {}
+            ExprKind::Get { object, .. } => {
+                self.resolve_expr(object)?;
+            }
+            ExprKind::Set { object, value, .. } => {
+                self.resolve_expr(object)?;
+                self.resolve_expr(value)?;
+            }
         }
 
         Ok(())

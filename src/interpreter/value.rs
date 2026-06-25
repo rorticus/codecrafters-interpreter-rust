@@ -2,11 +2,19 @@ use crate::interpreter::Signal;
 use crate::interpreter::environment::Environment;
 use crate::parser::expr::LiteralValue;
 use crate::parser::stmt::Stmt;
+use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[derive(Clone)]
 pub struct LoxClass {
     pub name: String,
+}
+
+#[derive(Clone)]
+pub struct LoxClassInstance {
+    pub class: Rc<LoxClass>,
+    pub fields: Rc<RefCell<HashMap<String, Value>>>,
 }
 
 #[derive(Clone)]
@@ -23,9 +31,7 @@ pub enum Value {
         closure: Environment,
     },
     Class(Rc<LoxClass>),
-    ClassInstance {
-        class: Rc<LoxClass>,
-    },
+    ClassInstance(Rc<LoxClassInstance>),
 }
 
 impl std::fmt::Display for Value {
@@ -43,7 +49,7 @@ impl std::fmt::Display for Value {
                 closure,
             } => write!(f, "<fn {}>", name),
             Value::Class(class) => write!(f, "{}", class.name),
-            Value::ClassInstance { class } => write!(f, "{} instance", class.name),
+            Value::ClassInstance(instance) => write!(f, "{} instance", instance.class.name),
         }
     }
 }

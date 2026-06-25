@@ -43,6 +43,15 @@ pub enum ExprKind {
         expr: Box<Expr>,
         arguments: Vec<Expr>,
     },
+    Get {
+        object: Box<Expr>,
+        name: Token,
+    },
+    Set {
+        object: Box<Expr>,
+        name: Token,
+        value: Box<Expr>,
+    },
 }
 
 impl Expr {
@@ -104,6 +113,17 @@ impl Expr {
                     .map(|a| a.pretty_print())
                     .collect::<Vec<_>>()
                     .join(", ")
+            ),
+            ExprKind::Get { object, name } => format!("{}.{}", object.pretty_print(), name.lexeme),
+            ExprKind::Set {
+                object,
+                name,
+                value,
+            } => format!(
+                "{}.{} = {}",
+                object.pretty_print(),
+                name.lexeme,
+                value.pretty_print()
             ),
         }
     }

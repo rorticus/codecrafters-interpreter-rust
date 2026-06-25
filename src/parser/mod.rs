@@ -257,6 +257,16 @@ impl Parser {
                         line,
                     ));
                 }
+                ExprKind::Get { object, name } => {
+                    return Ok(self.make_expr(
+                        ExprKind::Set {
+                            object: object.clone(),
+                            name: name.clone(),
+                            value: Box::new(value),
+                        },
+                        expr.line,
+                    ));
+                }
                 _ => return Err(ParseError::InvalidAssignmentTarget),
             }
         }
@@ -426,30 +436,45 @@ impl Parser {
     fn call(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.primary()?;
 
-        while matches!(self.peek().map(|k| &k.kind), Some(TokenKind::LeftParen)) {
-            let line = self.advance().unwrap().line;
-            let mut arguments = vec![];
+        loop {
+            if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::LeftParen)) {
+                let line = self.advance().unwrap().line;
+                let mut arguments = vec![];
 
-            if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightParen)) {
-                loop {
-                    arguments.push(self.expression()?);
+                if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::RightParen)) {
+                    loop {
+                        arguments.push(self.expression()?);
 
-                    if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Comma)) {
-                        break;
+                        if !matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Comma)) {
+                            break;
+                        }
+                        self.advance();
                     }
-                    self.advance();
                 }
+
+                self.expect(TokenKind::RightParen)?;
+
+                expr = self.make_expr(
+                    ExprKind::Call {
+                        expr: Box::new(expr),
+                        arguments,
+                    },
+                    line,
+                )
+            } else if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Dot)) {
+                let line = self.advance().unwrap().line;
+                let name = self.expect_identifier()?;
+
+                expr = self.make_expr(
+                    ExprKind::Get {
+                        object: Box::new(expr),
+                        name,
+                    },
+                    line,
+                );
+            } else {
+                break;
             }
-
-            self.expect(TokenKind::RightParen)?;
-
-            expr = self.make_expr(
-                ExprKind::Call {
-                    expr: Box::new(expr),
-                    arguments,
-                },
-                line,
-            )
         }
 
         Ok(expr)

@@ -2,6 +2,7 @@ pub mod environment;
 pub mod value;
 
 use std::{
+    cell::RefCell,
     collections::HashMap,
     rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
@@ -10,7 +11,7 @@ use std::{
 use crate::{
     interpreter::{
         environment::Environment,
-        value::{LoxClass, Value},
+        value::{LoxClass, LoxClassInstance, Value},
     },
     lexer::{Token, TokenKind},
     parser::{
@@ -279,6 +280,51 @@ impl Interpreter {
                     other => other,
                 })
             }
+            ExprKind::Get { object, name } => {
+                let val = self.evaluate(object)?;
+
+                match val {
+                    Value::ClassInstance(class_instance) => {
+                        let fields = class_instance.fields.borrow();
+
+                        if !fields.contains_key(&name.lexeme) {
+                            Err(Signal::Error(InterpreterError::RuntimeError(
+                                format!("Undefined property '{}'", name.lexeme),
+                                name.line,
+                            )))
+                        } else {
+                            Ok(fields.get(&name.lexeme).unwrap().clone())
+                        }
+                    }
+                    _ => Err(Signal::Error(InterpreterError::RuntimeError(
+                        format!("cannot access member variable on non class variable"),
+                        expr.line,
+                    ))),
+                }
+            }
+            ExprKind::Set {
+                object,
+                name,
+                value,
+            } => {
+                let obj = self.evaluate(object)?;
+
+                match obj {
+                    Value::ClassInstance(lox_instance) => {
+                        let mut fields = lox_instance.fields.borrow_mut();
+
+                        let value = self.evaluate(value)?;
+
+                        fields.insert(name.lexeme.clone(), value.clone());
+
+                        Ok(value)
+                    }
+                    _ => Err(Signal::Error(InterpreterError::RuntimeError(
+                        "cannot set field on non class variable".to_string(),
+                        name.line,
+                    ))),
+                }
+            }
         }
     }
 
@@ -480,9 +526,14 @@ impl Interpreter {
                     Err(e) => Err(e),
                 }
             }
-            Value::Class(lox_class) => Ok(Value::ClassInstance {
-                class: lox_class.clone(),
-            }),
+            Value::Class(lox_class) => {
+                let class_instance = LoxClassInstance {
+                    class: lox_class.clone(),
+                    fields: Rc::new(RefCell::new(HashMap::new())),
+                };
+
+                Ok(Value::ClassInstance(Rc::new(class_instance)))
+            }
             _ => Err(Signal::Error(InterpreterError::RuntimeError(
                 format!("Trying to call non-function"),
                 0,
