@@ -29,4 +29,8 @@ pub enum Stmt {
     Break(Token),
     Continue(Token),
     Return(Option<Expr>),
+    Class {
+        name: Token,
+        methods: Vec<Stmt>,
+    },
 }

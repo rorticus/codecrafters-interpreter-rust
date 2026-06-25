@@ -204,6 +204,15 @@ impl Interpreter {
 
                 Ok(())
             }
+            Stmt::Class { name, .. } => {
+                self.environment.define(
+                    &name.lexeme,
+                    Value::Class {
+                        name: name.lexeme.to_string(),
+                    },
+                );
+                Ok(())
+            }
         }
     }
 

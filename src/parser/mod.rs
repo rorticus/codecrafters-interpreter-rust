@@ -135,37 +135,41 @@ impl Parser {
         } else if matches!(self.peek().map(|k| &k.kind), Some(TokenKind::Fun)) {
             self.advance();
 
-            let fn_name = self.expect_identifier()?;
-
-            self.expect(TokenKind::LeftParen)?;
-
-            let mut params = vec![];
-
-            if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::RightParen)) {
-                // parameters
-                loop {
-                    params.push(self.expect_identifier()?);
-
-                    if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Comma)) {
-                        break;
-                    }
-
-                    self.advance();
-                }
-            }
-
-            self.expect(TokenKind::RightParen)?;
-
-            let body = self.expect_block_statement()?;
-
-            Ok(Stmt::Function {
-                name: fn_name,
-                params,
-                body: Box::new(body),
-            })
+            self.parse_function()
         } else {
             self.statement()
         }
+    }
+
+    fn parse_function(&mut self) -> Result<Stmt, ParseError> {
+        let fn_name = self.expect_identifier()?;
+
+        self.expect(TokenKind::LeftParen)?;
+
+        let mut params = vec![];
+
+        if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::RightParen)) {
+            // parameters
+            loop {
+                params.push(self.expect_identifier()?);
+
+                if !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::Comma)) {
+                    break;
+                }
+
+                self.advance();
+            }
+        }
+
+        self.expect(TokenKind::RightParen)?;
+
+        let body = self.expect_block_statement()?;
+
+        Ok(Stmt::Function {
+            name: fn_name,
+            params,
+            body: Box::new(body),
+        })
     }
 
     fn non_decl_statement(&mut self) -> Result<Stmt, ParseError> {
@@ -220,6 +224,7 @@ impl Parser {
 
                 Ok(Stmt::Return(return_value))
             }
+            Some(TokenKind::Class) => self.parse_class_statement(),
             _ => self.parse_expression_statement(),
         }
     }
@@ -573,6 +578,27 @@ impl Parser {
             condition,
             increment: incrementer,
             block: Box::new(block),
+        })
+    }
+
+    fn parse_class_statement(&mut self) -> Result<Stmt, ParseError> {
+        // consume the class keyword
+        self.advance();
+
+        let name = self.expect_identifier()?;
+
+        self.expect(TokenKind::LeftBrace)?;
+
+        let mut stmts = Vec::new();
+        while !matches!(self.peek().map(|t| &t.kind), Some(TokenKind::RightBrace)) {
+            stmts.push(self.parse_function()?);
+        }
+
+        self.expect(TokenKind::RightBrace)?;
+
+        Ok(Stmt::Class {
+            name,
+            methods: stmts,
         })
     }
 }

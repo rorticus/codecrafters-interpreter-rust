@@ -16,6 +16,9 @@ pub enum Value {
         body: Stmt,
         closure: Environment,
     },
+    Class {
+        name: String,
+    },
 }
 
 impl std::fmt::Display for Value {
@@ -32,6 +35,7 @@ impl std::fmt::Display for Value {
                 body,
                 closure,
             } => write!(f, "<fn {}>", name),
+            Value::Class { name } => write!(f, "{}", name),
         }
     }
 }

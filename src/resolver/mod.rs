@@ -159,6 +159,10 @@ impl Resolver {
             Stmt::Break(t) | Stmt::Continue(t) => {
                 // do nothing
             }
+            Stmt::Class { name, methods } => {
+                self.declare(&name.lexeme, name.line)?;
+                self.define(&name.lexeme);
+            }
         }
 
         Ok(())
