@@ -212,9 +212,28 @@ impl Interpreter {
 
                 Ok(())
             }
-            Stmt::Class { name, .. } => {
+            Stmt::Class { name, methods } => {
+                let mut class_methods = HashMap::new();
+
+                for stmt in methods {
+                    match stmt {
+                        Stmt::Function { name, params, body } => {
+                            let method = Value::Function {
+                                name: name.lexeme.clone(),
+                                params: params.iter().map(|t| t.lexeme.clone()).collect(),
+                                body: *body.clone(),
+                                closure: self.environment.clone(),
+                            };
+
+                            class_methods.insert(name.lexeme.clone(), method);
+                        }
+                        _ => {}
+                    }
+                }
+
                 let lox_class = LoxClass {
                     name: name.lexeme.to_string(),
+                    methods: class_methods,
                 };
 
                 self.environment
@@ -287,13 +306,20 @@ impl Interpreter {
                     Value::ClassInstance(class_instance) => {
                         let fields = class_instance.fields.borrow();
 
-                        if !fields.contains_key(&name.lexeme) {
+                        if fields.contains_key(&name.lexeme) {
+                            Ok(fields.get(&name.lexeme).unwrap().clone())
+                        } else if class_instance.class.methods.contains_key(&name.lexeme) {
+                            Ok(class_instance
+                                .class
+                                .methods
+                                .get(&name.lexeme)
+                                .unwrap()
+                                .clone())
+                        } else {
                             Err(Signal::Error(InterpreterError::RuntimeError(
                                 format!("Undefined property '{}'", name.lexeme),
                                 name.line,
                             )))
-                        } else {
-                            Ok(fields.get(&name.lexeme).unwrap().clone())
                         }
                     }
                     _ => Err(Signal::Error(InterpreterError::RuntimeError(

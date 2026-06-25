@@ -14,6 +14,7 @@ pub enum ResolveError {
 enum FunctionState {
     None,
     Function,
+    Method,
 }
 
 impl Display for ResolveError {
@@ -102,7 +103,7 @@ impl Resolver {
             Stmt::Function { name, params, body } => {
                 self.declare(&name.lexeme, name.line)?;
                 self.define(&name.lexeme);
-                self.resolve_function(params, body)?;
+                self.resolve_function(params, body, FunctionState::Function)?;
             }
             Stmt::Expression(e) | Stmt::Print(e) => {
                 self.resolve_expr(e)?;
@@ -162,15 +163,29 @@ impl Resolver {
             Stmt::Class { name, methods } => {
                 self.declare(&name.lexeme, name.line)?;
                 self.define(&name.lexeme);
+
+                for stmt in methods {
+                    match stmt {
+                        Stmt::Function { params, body, .. } => {
+                            self.resolve_function(params, body, FunctionState::Method)?;
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
 
         Ok(())
     }
 
-    fn resolve_function(&mut self, params: &[Token], body: &Stmt) -> Result<(), ResolveError> {
+    fn resolve_function(
+        &mut self,
+        params: &[Token],
+        body: &Stmt,
+        fn_type: FunctionState,
+    ) -> Result<(), ResolveError> {
         let enclosing_function = self.current_function.clone();
-        self.current_function = FunctionState::Function;
+        self.current_function = fn_type;
 
         self.begin_scope();
 
