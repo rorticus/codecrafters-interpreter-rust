@@ -255,7 +255,14 @@ impl Interpreter {
 
                 Ok(v)
             }
-            ExprKind::Call { expr, arguments } => self.call_function(expr, arguments),
+            ExprKind::Call { expr, arguments } => {
+                self.call_function(expr, arguments).map_err(|e| match e {
+                    Signal::Error(InterpreterError::RuntimeError(msg, _)) => {
+                        Signal::Error(InterpreterError::RuntimeError(msg, expr.line))
+                    }
+                    other => other,
+                })
+            }
         }
     }
 
