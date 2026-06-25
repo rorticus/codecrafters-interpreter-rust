@@ -1,30 +1,42 @@
 use crate::lexer::Token;
 use crate::parser::expr::{Expr, ExprKind};
 use crate::parser::stmt::Stmt;
-use crate::resolver::ResolveError::{AlreadyDefined, SelfReference};
 use std::collections::HashMap;
 use std::fmt::Display;
 
 pub enum ResolveError {
     SelfReference(usize),
     AlreadyDefined(usize, String),
+    InvalidReturn(usize),
+}
+
+#[derive(Clone)]
+enum FunctionState {
+    None,
+    Function,
 }
 
 impl Display for ResolveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SelfReference(line) => write!(f, "[Line {}] variable references itself", line),
-            AlreadyDefined(line, name) => write!(
+            ResolveError::SelfReference(line) => {
+                write!(f, "[Line {}] variable references itself", line)
+            }
+            ResolveError::AlreadyDefined(line, name) => write!(
                 f,
-                "[line {}] Error at '{}': Already a variable with this name in this scope.",
+                "[Line {}] Error at '{}': Already a variable with this name in this scope.",
                 line, name
             ),
+            ResolveError::InvalidReturn(line) => {
+                write!(f, "[Line {}] Invalid return statement.", line)
+            }
         }
     }
 }
 
 pub struct Resolver {
     scopes: Vec<HashMap<String, bool>>,
+    current_function: FunctionState,
     pub depths: HashMap<usize, usize>,
 }
 
@@ -32,6 +44,7 @@ impl Resolver {
     pub fn new() -> Self {
         Resolver {
             scopes: Vec::new(),
+            current_function: FunctionState::None,
             depths: HashMap::new(),
         }
     }
@@ -111,6 +124,10 @@ impl Resolver {
                 self.resolve_stmt(block)?;
             }
             Stmt::Return(expr) => {
+                if let FunctionState::None = self.current_function {
+                    return Err(ResolveError::InvalidReturn(0));
+                }
+
                 if let Some(e) = expr {
                     self.resolve_expr(e)?;
                 }
@@ -148,6 +165,9 @@ impl Resolver {
     }
 
     fn resolve_function(&mut self, params: &[Token], body: &Stmt) -> Result<(), ResolveError> {
+        let enclosing_function = self.current_function.clone();
+        self.current_function = FunctionState::Function;
+
         self.begin_scope();
 
         for param in params {
@@ -160,6 +180,8 @@ impl Resolver {
                 self.resolve_stmt(stmt)?;
             }
         }
+
+        self.current_function = enclosing_function;
 
         self.end_scope();
 
