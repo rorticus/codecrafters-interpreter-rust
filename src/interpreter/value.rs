@@ -2,6 +2,12 @@ use crate::interpreter::Signal;
 use crate::interpreter::environment::Environment;
 use crate::parser::expr::LiteralValue;
 use crate::parser::stmt::Stmt;
+use std::rc::Rc;
+
+#[derive(Clone)]
+pub struct LoxClass {
+    pub name: String,
+}
 
 #[derive(Clone)]
 pub enum Value {
@@ -16,8 +22,9 @@ pub enum Value {
         body: Stmt,
         closure: Environment,
     },
-    Class {
-        name: String,
+    Class(Rc<LoxClass>),
+    ClassInstance {
+        class: Rc<LoxClass>,
     },
 }
 
@@ -35,7 +42,8 @@ impl std::fmt::Display for Value {
                 body,
                 closure,
             } => write!(f, "<fn {}>", name),
-            Value::Class { name } => write!(f, "{}", name),
+            Value::Class(class) => write!(f, "{}", class.name),
+            Value::ClassInstance { class } => write!(f, "{} instance", class.name),
         }
     }
 }

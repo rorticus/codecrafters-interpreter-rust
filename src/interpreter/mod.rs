@@ -3,13 +3,20 @@ pub mod value;
 
 use std::{
     collections::HashMap,
+    rc::Rc,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use crate::{
-    interpreter::{environment::Environment, value::Value},
+    interpreter::{
+        environment::Environment,
+        value::{LoxClass, Value},
+    },
     lexer::{Token, TokenKind},
-    parser::{expr::Expr, expr::ExprKind, stmt::Stmt},
+    parser::{
+        expr::{Expr, ExprKind},
+        stmt::Stmt,
+    },
 };
 
 pub enum InterpreterError {
@@ -205,12 +212,12 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Class { name, .. } => {
-                self.environment.define(
-                    &name.lexeme,
-                    Value::Class {
-                        name: name.lexeme.to_string(),
-                    },
-                );
+                let lox_class = LoxClass {
+                    name: name.lexeme.to_string(),
+                };
+
+                self.environment
+                    .define(&name.lexeme, Value::Class(Rc::new(lox_class)));
                 Ok(())
             }
         }
@@ -473,6 +480,9 @@ impl Interpreter {
                     Err(e) => Err(e),
                 }
             }
+            Value::Class(lox_class) => Ok(Value::ClassInstance {
+                class: lox_class.clone(),
+            }),
             _ => Err(Signal::Error(InterpreterError::RuntimeError(
                 format!("Trying to call non-function"),
                 0,
