@@ -8,6 +8,7 @@ pub enum ResolveError {
     SelfReference(usize),
     AlreadyDefined(usize, String),
     InvalidReturn(usize),
+    InvalidThis(usize),
 }
 
 #[derive(Clone)]
@@ -15,6 +16,12 @@ enum FunctionState {
     None,
     Function,
     Method,
+}
+
+#[derive(Clone)]
+enum ClassState {
+    None,
+    Class,
 }
 
 impl Display for ResolveError {
@@ -31,6 +38,9 @@ impl Display for ResolveError {
             ResolveError::InvalidReturn(line) => {
                 write!(f, "[Line {}] Invalid return statement.", line)
             }
+            ResolveError::InvalidThis(line) => {
+                write!(f, "[Line {}] Can't use 'this' outside of a class.", line)
+            }
         }
     }
 }
@@ -38,6 +48,7 @@ impl Display for ResolveError {
 pub struct Resolver {
     scopes: Vec<HashMap<String, bool>>,
     current_function: FunctionState,
+    current_class: ClassState,
     pub depths: HashMap<usize, usize>,
 }
 
@@ -46,6 +57,7 @@ impl Resolver {
         Resolver {
             scopes: Vec::new(),
             current_function: FunctionState::None,
+            current_class: ClassState::None,
             depths: HashMap::new(),
         }
     }
@@ -161,6 +173,10 @@ impl Resolver {
                 // do nothing
             }
             Stmt::Class { name, methods } => {
+                let enclosing_class = self.current_class.clone();
+
+                self.current_class = ClassState::Class;
+
                 self.declare(&name.lexeme, name.line)?;
                 self.define(&name.lexeme);
 
@@ -178,6 +194,8 @@ impl Resolver {
                 }
 
                 self.end_scope();
+
+                self.current_class = enclosing_class;
             }
         }
 
@@ -256,6 +274,9 @@ impl Resolver {
                 self.resolve_expr(value)?;
             }
             ExprKind::This(t) => {
+                if let ClassState::None = self.current_class {
+                    return Err(ResolveError::InvalidThis(t.line));
+                }
                 self.resolve_local(expr.id, &t.lexeme);
             }
         }
