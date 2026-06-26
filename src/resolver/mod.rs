@@ -9,6 +9,7 @@ pub enum ResolveError {
     AlreadyDefined(usize, String),
     InvalidReturn(usize),
     InvalidThis(usize),
+    InvalidReturnInInitializer(usize),
 }
 
 #[derive(Clone)]
@@ -16,6 +17,7 @@ enum FunctionState {
     None,
     Function,
     Method,
+    Initializer,
 }
 
 #[derive(Clone)]
@@ -37,6 +39,13 @@ impl Display for ResolveError {
             ),
             ResolveError::InvalidReturn(line) => {
                 write!(f, "[Line {}] Invalid return statement.", line)
+            }
+            ResolveError::InvalidReturnInInitializer(line) => {
+                write!(
+                    f,
+                    "[Line {}] Can't return a value from an initializer.",
+                    line
+                )
             }
             ResolveError::InvalidThis(line) => {
                 write!(f, "[Line {}] Can't use 'this' outside of a class.", line)
@@ -139,6 +148,10 @@ impl Resolver {
             Stmt::Return(expr) => {
                 if let FunctionState::None = self.current_function {
                     return Err(ResolveError::InvalidReturn(0));
+                } else if let FunctionState::Initializer = self.current_function
+                    && expr.is_some()
+                {
+                    return Err(ResolveError::InvalidReturnInInitializer(0));
                 }
 
                 if let Some(e) = expr {
@@ -186,8 +199,16 @@ impl Resolver {
 
                 for stmt in methods {
                     match stmt {
-                        Stmt::Function { params, body, .. } => {
-                            self.resolve_function(params, body, FunctionState::Method)?;
+                        Stmt::Function { params, body, name } => {
+                            self.resolve_function(
+                                params,
+                                body,
+                                if name.lexeme == "init" {
+                                    FunctionState::Initializer
+                                } else {
+                                    FunctionState::Method
+                                },
+                            )?;
                         }
                         _ => {}
                     }
