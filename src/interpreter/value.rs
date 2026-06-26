@@ -30,6 +30,7 @@ pub enum Value {
         params: Vec<String>,
         body: Stmt,
         closure: Environment,
+        is_initializer: bool,
     },
     Class(Rc<LoxClass>),
     ClassInstance(Rc<LoxClassInstance>),
@@ -48,6 +49,7 @@ impl std::fmt::Display for Value {
                 params,
                 body,
                 closure,
+                ..
             } => write!(f, "<fn {}>", name),
             Value::Class(class) => write!(f, "{}", class.name),
             Value::ClassInstance(instance) => write!(f, "{} instance", instance.class.name),

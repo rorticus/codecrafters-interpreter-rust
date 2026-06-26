@@ -207,6 +207,7 @@ impl Interpreter {
                         params: params.iter().map(|p| p.lexeme.clone()).collect(),
                         body: *body.clone(),
                         closure: self.environment.clone(),
+                        is_initializer: false,
                     },
                 );
 
@@ -223,6 +224,7 @@ impl Interpreter {
                                 params: params.iter().map(|t| t.lexeme.clone()).collect(),
                                 body: *body.clone(),
                                 closure: self.environment.clone(),
+                                is_initializer: name.lexeme == "init",
                             };
 
                             class_methods.insert(name.lexeme.clone(), method);
@@ -292,12 +294,13 @@ impl Interpreter {
                 Ok(v)
             }
             ExprKind::Call { expr, arguments } => {
-                self.call_function(expr, arguments).map_err(|e| match e {
-                    Signal::Error(InterpreterError::RuntimeError(msg, _)) => {
-                        Signal::Error(InterpreterError::RuntimeError(msg, expr.line))
-                    }
-                    other => other,
-                })
+                self.call_function_expr(expr, arguments)
+                    .map_err(|e| match e {
+                        Signal::Error(InterpreterError::RuntimeError(msg, _)) => {
+                            Signal::Error(InterpreterError::RuntimeError(msg, expr.line))
+                        }
+                        other => other,
+                    })
             }
             ExprKind::Get { object, name } => {
                 let val = self.evaluate(object)?;
@@ -503,42 +506,31 @@ impl Interpreter {
         }
     }
 
-    fn call_function(&mut self, identifier: &Expr, arguments: &Vec<Expr>) -> Result<Value, Signal> {
-        let value = self.evaluate(identifier)?;
-
-        match value {
-            Value::NativeFunction(_, fn_call) => {
-                let args: Result<Vec<Value>, Signal> =
-                    arguments.iter().map(|arg| self.evaluate(arg)).collect();
-                fn_call(args?)
-            }
+    fn call_function(&mut self, func: &Value, arguments: Vec<Value>) -> Result<Value, Signal> {
+        match func {
+            Value::NativeFunction(_, fn_call) => fn_call(arguments),
             Value::Function {
                 name,
                 params,
                 body,
                 closure,
+                is_initializer,
             } => {
-                let mut arg_vals = vec![];
-
-                for arg in arguments {
-                    arg_vals.push(self.evaluate(arg)?);
-                }
-
-                if arg_vals.len() != params.len() {
+                if arguments.len() != params.len() {
                     return Err(Signal::Error(InterpreterError::RuntimeError(
                         format!(
                             "Expected {} arguments but got {}.",
                             params.len(),
-                            arg_vals.len()
+                            arguments.len()
                         ),
                         0,
                     )));
                 }
 
-                let saved_env = std::mem::replace(&mut self.environment, closure);
+                let saved_env = std::mem::replace(&mut self.environment, closure.clone());
                 self.environment.push();
 
-                for (param, val) in params.iter().zip(arg_vals) {
+                for (param, val) in params.iter().zip(arguments) {
                     self.environment.define(param, val);
                 }
 
@@ -558,6 +550,10 @@ impl Interpreter {
                 self.environment.pop();
                 self.environment = saved_env;
 
+                if *is_initializer && result.is_ok() {
+                    return Ok(closure.get_at(0, "this").unwrap());
+                }
+
                 match result {
                     Ok(_) => Ok(Value::Nil),
                     Err(Signal::Return(v)) => Ok(v),
@@ -570,7 +566,14 @@ impl Interpreter {
                     fields: Rc::new(RefCell::new(HashMap::new())),
                 };
 
-                Ok(Value::ClassInstance(Rc::new(class_instance)))
+                let value = Value::ClassInstance(Rc::new(class_instance));
+
+                if let Some(init_method) = lox_class.methods.get("init") {
+                    let bound_init = self.bind_method(init_method, value.clone());
+                    self.call_function(&bound_init, arguments)?;
+                }
+
+                Ok(value)
             }
             _ => Err(Signal::Error(InterpreterError::RuntimeError(
                 format!("Trying to call non-function"),
@@ -579,12 +582,25 @@ impl Interpreter {
         }
     }
 
+    fn call_function_expr(
+        &mut self,
+        identifier: &Expr,
+        arguments: &Vec<Expr>,
+    ) -> Result<Value, Signal> {
+        let value = self.evaluate(identifier)?;
+        let args: Result<Vec<Value>, Signal> =
+            arguments.iter().map(|arg| self.evaluate(arg)).collect();
+
+        self.call_function(&value, args?)
+    }
+
     fn bind_method(&self, method: &Value, instance: Value) -> Value {
         if let Value::Function {
             name,
             params,
             body,
             closure,
+            is_initializer,
         } = method
         {
             let mut bound_closure = closure.clone();
@@ -595,6 +611,7 @@ impl Interpreter {
                 params: params.clone(),
                 body: body.clone(),
                 closure: bound_closure,
+                is_initializer: *is_initializer,
             }
         } else {
             method.clone()
