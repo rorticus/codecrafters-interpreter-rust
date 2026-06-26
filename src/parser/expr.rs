@@ -52,6 +52,7 @@ pub enum ExprKind {
         name: Token,
         value: Box<Expr>,
     },
+    This(Token),
 }
 
 impl Expr {
@@ -125,6 +126,7 @@ impl Expr {
                 name.lexeme,
                 value.pretty_print()
             ),
+            ExprKind::This(_) => format!("this"),
         }
     }
 }

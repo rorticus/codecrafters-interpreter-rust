@@ -164,6 +164,10 @@ impl Resolver {
                 self.declare(&name.lexeme, name.line)?;
                 self.define(&name.lexeme);
 
+                self.begin_scope();
+
+                self.define("this");
+
                 for stmt in methods {
                     match stmt {
                         Stmt::Function { params, body, .. } => {
@@ -172,6 +176,8 @@ impl Resolver {
                         _ => {}
                     }
                 }
+
+                self.end_scope();
             }
         }
 
@@ -248,6 +254,9 @@ impl Resolver {
             ExprKind::Set { object, value, .. } => {
                 self.resolve_expr(object)?;
                 self.resolve_expr(value)?;
+            }
+            ExprKind::This(t) => {
+                self.resolve_local(expr.id, &t.lexeme);
             }
         }
 

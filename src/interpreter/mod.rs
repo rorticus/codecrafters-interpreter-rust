@@ -309,12 +309,9 @@ impl Interpreter {
                         if fields.contains_key(&name.lexeme) {
                             Ok(fields.get(&name.lexeme).unwrap().clone())
                         } else if class_instance.class.methods.contains_key(&name.lexeme) {
-                            Ok(class_instance
-                                .class
-                                .methods
-                                .get(&name.lexeme)
-                                .unwrap()
-                                .clone())
+                            let method = class_instance.class.methods.get(&name.lexeme).unwrap();
+                            Ok(self
+                                .bind_method(method, Value::ClassInstance(class_instance.clone())))
                         } else {
                             Err(Signal::Error(InterpreterError::RuntimeError(
                                 format!("Undefined property '{}'", name.lexeme),
@@ -350,6 +347,21 @@ impl Interpreter {
                         name.line,
                     ))),
                 }
+            }
+            ExprKind::This(t) => {
+                if let Some(&depth) = self.depths.get(&expr.id) {
+                    return self.environment.get_at(depth, &t.lexeme).ok_or_else(|| {
+                        Signal::Error(InterpreterError::RuntimeError(
+                            format!("Invalid usage of this"),
+                            t.line,
+                        ))
+                    });
+                }
+
+                Err(Signal::Error(InterpreterError::RuntimeError(
+                    "Invalid usage of this".to_string(),
+                    t.line,
+                )))
             }
         }
     }
@@ -564,6 +576,28 @@ impl Interpreter {
                 format!("Trying to call non-function"),
                 0,
             ))),
+        }
+    }
+
+    fn bind_method(&self, method: &Value, instance: Value) -> Value {
+        if let Value::Function {
+            name,
+            params,
+            body,
+            closure,
+        } = method
+        {
+            let mut bound_closure = closure.clone();
+            bound_closure.push(); // new innermost scope
+            bound_closure.define("this", instance); // inject `this`
+            Value::Function {
+                name: name.clone(),
+                params: params.clone(),
+                body: body.clone(),
+                closure: bound_closure,
+            }
+        } else {
+            method.clone()
         }
     }
 }
