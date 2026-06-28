@@ -220,14 +220,24 @@ impl Interpreter {
             } => {
                 let mut class_methods = HashMap::new();
 
+                let resolved_superclass = if let Some(sc) = superclass {
+                    let klass = self.evaluate(sc)?;
+                    if let Value::Class(rc) = klass {
+                        Some(rc)
+                    } else {
+                        return Err(Signal::Error(InterpreterError::RuntimeError(
+                            format!("superclass is not a class"),
+                            sc.line,
+                        )));
+                    }
+                } else {
+                    None
+                };
+
                 let enclosing_env = std::mem::replace(&mut self.environment, Environment::new());
 
-                if superclass.is_some() {
-                    let super_class = self.evaluate(&superclass.clone().unwrap())?;
-
-                    if let Value::Class(super_class) = super_class {
-                        self.environment.define("super", Value::Class(super_class));
-                    }
+                if let Some(ref rc) = resolved_superclass {
+                    self.environment.define("super", Value::Class(rc.clone()));
                 }
 
                 for stmt in methods {
@@ -250,22 +260,7 @@ impl Interpreter {
                 let lox_class = LoxClass {
                     name: name.lexeme.to_string(),
                     methods: class_methods,
-                    superclass: {
-                        if let Some(superclass) = superclass {
-                            let klass = self.evaluate(superclass)?;
-
-                            if let Value::Class(lox_class) = klass {
-                                Some(lox_class.clone())
-                            } else {
-                                return Err(Signal::Error(InterpreterError::RuntimeError(
-                                    format!("Superclass must be a class."),
-                                    superclass.line,
-                                )));
-                            }
-                        } else {
-                            None
-                        }
-                    },
+                    superclass: resolved_superclass,
                 };
 
                 self.environment = enclosing_env;
