@@ -26,6 +26,7 @@ enum FunctionState {
 enum ClassState {
     None,
     Class,
+    SubClass,
 }
 
 impl Display for ResolveError {
@@ -200,7 +201,11 @@ impl Resolver {
             } => {
                 let enclosing_class = self.current_class.clone();
 
-                self.current_class = ClassState::Class;
+                self.current_class = if superclass.is_some() {
+                    ClassState::SubClass
+                } else {
+                    ClassState::Class
+                };
 
                 self.declare(&name.lexeme, name.line)?;
                 self.define(&name.lexeme);
@@ -334,7 +339,10 @@ impl Resolver {
             ExprKind::Super(t, _) => {
                 if let ClassState::None = self.current_class {
                     return Err(ResolveError::InvalidSuper(t.line));
+                } else if let ClassState::Class = self.current_class {
+                    return Err(ResolveError::InvalidSuper(t.line));
                 }
+
                 self.resolve_local(expr.id, &t.lexeme);
             }
         }
