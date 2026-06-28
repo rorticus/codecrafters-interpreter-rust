@@ -13,6 +13,18 @@ pub struct LoxClass {
     pub methods: HashMap<String, Value>,
 }
 
+impl LoxClass {
+    pub fn find_method(&self, name: &str) -> Option<Value> {
+        if self.methods.contains_key(name) {
+            return Some(self.methods.get(name).unwrap().clone());
+        } else if let Some(superclass) = self.superclass.clone() {
+            return superclass.find_method(name);
+        } else {
+            return None;
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct LoxClassInstance {
     pub class: Rc<LoxClass>,

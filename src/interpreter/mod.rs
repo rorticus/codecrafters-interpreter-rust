@@ -331,10 +331,10 @@ impl Interpreter {
 
                         if fields.contains_key(&name.lexeme) {
                             Ok(fields.get(&name.lexeme).unwrap().clone())
-                        } else if class_instance.class.methods.contains_key(&name.lexeme) {
-                            let method = class_instance.class.methods.get(&name.lexeme).unwrap();
+                        } else if let Some(method) = class_instance.class.find_method(&name.lexeme)
+                        {
                             Ok(self
-                                .bind_method(method, Value::ClassInstance(class_instance.clone())))
+                                .bind_method(&method, Value::ClassInstance(class_instance.clone())))
                         } else {
                             Err(Signal::Error(InterpreterError::RuntimeError(
                                 format!("Undefined property '{}'", name.lexeme),
