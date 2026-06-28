@@ -523,6 +523,13 @@ impl Parser {
                         let token = t.clone();
                         Ok(self.make_expr(ExprKind::This(token), line))
                     }
+                    TokenKind::Super => {
+                        let keyword = t.clone();
+                        self.expect(TokenKind::Dot)?;
+                        let method = self.expect_identifier()?;
+
+                        Ok(self.make_expr(ExprKind::Super(keyword, method), line))
+                    }
                     _ => Err(ParseError::ExpectedExpr(t.clone())),
                 }
             }

@@ -220,6 +220,16 @@ impl Interpreter {
             } => {
                 let mut class_methods = HashMap::new();
 
+                let enclosing_env = std::mem::replace(&mut self.environment, Environment::new());
+
+                if superclass.is_some() {
+                    let super_class = self.evaluate(&superclass.clone().unwrap())?;
+
+                    if let Value::Class(super_class) = super_class {
+                        self.environment.define("super", Value::Class(super_class));
+                    }
+                }
+
                 for stmt in methods {
                     match stmt {
                         Stmt::Function { name, params, body } => {
@@ -258,8 +268,11 @@ impl Interpreter {
                     },
                 };
 
+                self.environment = enclosing_env;
+
                 self.environment
                     .define(&name.lexeme, Value::Class(Rc::new(lox_class)));
+
                 Ok(())
             }
         }
@@ -383,6 +396,40 @@ impl Interpreter {
 
                 Err(Signal::Error(InterpreterError::RuntimeError(
                     "Invalid usage of this".to_string(),
+                    t.line,
+                )))
+            }
+            ExprKind::Super(t, m) => {
+                if let Some(&depth) = self.depths.get(&expr.id) {
+                    let superclass = self.environment.get_at(depth, &t.lexeme);
+                    if let Some(Value::Class(superclass)) = superclass {
+                        let object = self.environment.get_at(depth - 1, "this");
+                        if object.is_none() {
+                            return Err(Signal::Error(InterpreterError::RuntimeError(
+                                format!("this not found"),
+                                t.line,
+                            )));
+                        }
+
+                        let method = superclass.find_method(&m.lexeme);
+                        if method.is_none() {
+                            return Err(Signal::Error(InterpreterError::RuntimeError(
+                                format!("Undefined property '{}'.", m.lexeme),
+                                t.line,
+                            )));
+                        }
+
+                        return Ok(self.bind_method(&method.unwrap(), object.unwrap()));
+                    } else {
+                        return Err(Signal::Error(InterpreterError::RuntimeError(
+                            format!("Invalid usage of super"),
+                            t.line,
+                        )));
+                    }
+                }
+
+                Err(Signal::Error(InterpreterError::RuntimeError(
+                    "Invalid usage of t".to_string(),
                     t.line,
                 )))
             }

@@ -53,6 +53,7 @@ pub enum ExprKind {
         value: Box<Expr>,
     },
     This(Token),
+    Super(Token, Token),
 }
 
 impl Expr {
@@ -127,6 +128,7 @@ impl Expr {
                 value.pretty_print()
             ),
             ExprKind::This(_) => format!("this"),
+            ExprKind::Super(token, method) => format!("{}.{}", token.lexeme, method.lexeme),
         }
     }
 }

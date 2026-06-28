@@ -11,6 +11,7 @@ pub enum ResolveError {
     InvalidThis(usize),
     InvalidReturnInInitializer(usize),
     ClassCantExtendSelf(usize),
+    InvalidSuper(usize),
 }
 
 #[derive(Clone)]
@@ -53,6 +54,9 @@ impl Display for ResolveError {
             }
             ResolveError::ClassCantExtendSelf(line) => {
                 write!(f, "[Line {}] A class can't inherit from itself.", line)
+            }
+            ResolveError::InvalidSuper(line) => {
+                write!(f, "[Line {}] Can't use 'super' outside of a class.", line)
             }
         }
     }
@@ -209,6 +213,11 @@ impl Resolver {
 
                         self.resolve_expr(superclass)?;
                     }
+
+                    self.begin_scope();
+                    self.scopes
+                        .last_mut()
+                        .and_then(|f| f.insert("super".to_string(), true));
                 }
 
                 self.begin_scope();
@@ -233,6 +242,10 @@ impl Resolver {
                 }
 
                 self.end_scope();
+
+                if superclass.is_some() {
+                    self.end_scope();
+                }
 
                 self.current_class = enclosing_class;
             }
@@ -315,6 +328,12 @@ impl Resolver {
             ExprKind::This(t) => {
                 if let ClassState::None = self.current_class {
                     return Err(ResolveError::InvalidThis(t.line));
+                }
+                self.resolve_local(expr.id, &t.lexeme);
+            }
+            ExprKind::Super(t, _) => {
+                if let ClassState::None = self.current_class {
+                    return Err(ResolveError::InvalidSuper(t.line));
                 }
                 self.resolve_local(expr.id, &t.lexeme);
             }
