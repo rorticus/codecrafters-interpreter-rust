@@ -234,9 +234,8 @@ impl Interpreter {
                     None
                 };
 
-                let enclosing_env = std::mem::replace(&mut self.environment, Environment::new());
-
                 if let Some(ref rc) = resolved_superclass {
+                    self.environment.push();
                     self.environment.define("super", Value::Class(rc.clone()));
                 }
 
@@ -260,10 +259,12 @@ impl Interpreter {
                 let lox_class = LoxClass {
                     name: name.lexeme.to_string(),
                     methods: class_methods,
-                    superclass: resolved_superclass,
+                    superclass: resolved_superclass.clone(),
                 };
 
-                self.environment = enclosing_env;
+                if resolved_superclass.is_some() {
+                    self.environment.pop();
+                }
 
                 self.environment
                     .define(&name.lexeme, Value::Class(Rc::new(lox_class)));
