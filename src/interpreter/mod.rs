@@ -588,8 +588,8 @@ impl Interpreter {
 
                 let value = Value::ClassInstance(Rc::new(class_instance));
 
-                if let Some(init_method) = lox_class.methods.get("init") {
-                    let bound_init = self.bind_method(init_method, value.clone());
+                if let Some(init_method) = lox_class.find_method("init") {
+                    let bound_init = self.bind_method(&init_method, value.clone());
                     self.call_function(&bound_init, arguments)?;
                 }
 
