@@ -615,6 +615,16 @@ impl Parser {
         self.advance();
 
         let name = self.expect_identifier()?;
+        let mut superclass = None;
+
+        if let Some(TokenKind::Less) = self.peek().map(|k| &k.kind) {
+            // superclass
+            self.advance();
+            let token = self.expect_identifier()?;
+            let line = token.line;
+
+            superclass = Some(self.make_expr(ExprKind::Identifier(token), line));
+        }
 
         self.expect(TokenKind::LeftBrace)?;
 
@@ -628,6 +638,7 @@ impl Parser {
         Ok(Stmt::Class {
             name,
             methods: stmts,
+            superclass,
         })
     }
 }

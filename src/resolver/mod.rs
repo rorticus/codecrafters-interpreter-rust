@@ -10,6 +10,7 @@ pub enum ResolveError {
     InvalidReturn(usize),
     InvalidThis(usize),
     InvalidReturnInInitializer(usize),
+    ClassCantExtendSelf(usize),
 }
 
 #[derive(Clone)]
@@ -49,6 +50,9 @@ impl Display for ResolveError {
             }
             ResolveError::InvalidThis(line) => {
                 write!(f, "[Line {}] Can't use 'this' outside of a class.", line)
+            }
+            ResolveError::ClassCantExtendSelf(line) => {
+                write!(f, "[Line {}] A class can't inherit from itself.", line)
             }
         }
     }
@@ -185,13 +189,27 @@ impl Resolver {
             Stmt::Break(t) | Stmt::Continue(t) => {
                 // do nothing
             }
-            Stmt::Class { name, methods } => {
+            Stmt::Class {
+                name,
+                methods,
+                superclass,
+            } => {
                 let enclosing_class = self.current_class.clone();
 
                 self.current_class = ClassState::Class;
 
                 self.declare(&name.lexeme, name.line)?;
                 self.define(&name.lexeme);
+
+                if let Some(superclass) = superclass {
+                    if let ExprKind::Identifier(t) = superclass.kind.clone() {
+                        if t.lexeme == name.lexeme {
+                            return Err(ResolveError::ClassCantExtendSelf(t.line));
+                        }
+
+                        self.resolve_expr(superclass)?;
+                    }
+                }
 
                 self.begin_scope();
 

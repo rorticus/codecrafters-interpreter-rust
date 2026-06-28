@@ -9,6 +9,7 @@ use std::rc::Rc;
 #[derive(Clone)]
 pub struct LoxClass {
     pub name: String,
+    pub superclass: Option<Rc<LoxClass>>,
     pub methods: HashMap<String, Value>,
 }
 

@@ -213,7 +213,11 @@ impl Interpreter {
 
                 Ok(())
             }
-            Stmt::Class { name, methods } => {
+            Stmt::Class {
+                name,
+                methods,
+                superclass,
+            } => {
                 let mut class_methods = HashMap::new();
 
                 for stmt in methods {
@@ -236,6 +240,22 @@ impl Interpreter {
                 let lox_class = LoxClass {
                     name: name.lexeme.to_string(),
                     methods: class_methods,
+                    superclass: {
+                        if let Some(superclass) = superclass {
+                            let klass = self.evaluate(superclass)?;
+
+                            if let Value::Class(lox_class) = klass {
+                                Some(lox_class.clone())
+                            } else {
+                                return Err(Signal::Error(InterpreterError::RuntimeError(
+                                    format!("Superclass must be a class."),
+                                    superclass.line,
+                                )));
+                            }
+                        } else {
+                            None
+                        }
+                    },
                 };
 
                 self.environment
